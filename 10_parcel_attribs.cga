@@ -1,0 +1,58 @@
+/**
+ * 10_parcel_attribs.cga
+ * Maps your SAPPA-derived fields into normalized CGA attributes
+ * Fields expected on the parcel layer (your schema):
+ *  - CCZNAME, CCSZNAME, NACZNAME, IZNAME  (Text)
+ *  - MBHMVALUE (Text or Number)           (Max Building Height in Metres)
+ *  - MBHLVALUE (Text or Number)           (Max Building Height in Levels)
+ *  - Shape_Area (Number)
+ */
+
+version "2023.1"
+
+// --- Raw attributes as imported from your parcel feature class ---
+attr CCZNAME = ""
+attr CCSZNAME = ""
+attr NACZNAME = ""
+attr IZNAME  = ""
+attr MBHMVALUE = 0           // will be coerced to number if text
+attr MBHLVALUE = 0
+attr Shape_Area = 0
+attr parcel_id = ""
+
+// --- Normalised, derived attributes (used by other files) ---
+@Hidden
+attr zone_name =
+    CCZNAME != "" ? CCZNAME :
+    (NACZNAME != "" ? NACZNAME :
+    (IZNAME  != "" ? IZNAME  : "Unzoned"))
+
+@Hidden
+attr subzone_name = CCSZNAME
+
+@Hidden
+attr height_m = toFloat(MBHMVALUE)
+
+@Hidden
+attr height_levels = toFloat(MBHLVALUE)
+
+// Utilities
+@Hidden
+toFloat(val) =
+    case typeof(val) == "string":
+        float(val, 0)
+    else:
+        val
+
+// Max height resolver: prefer stricter of metres vs. levels*assumed height.
+// Caller provides context storeyHeight (varies by use).
+@Hidden
+maxHeight(contextFloorHeight) =
+    case height_m > 0 && height_levels > 0:
+        min(height_m, height_levels * contextFloorHeight)
+    case height_m > 0:
+        height_m
+    case height_levels > 0:
+        height_levels * contextFloorHeight
+    else:
+        12  // safe fallback
