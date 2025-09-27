@@ -1,36 +1,33 @@
-/**
- * Builds podium+ tower envelopes with simple streetwall controls.
- */
 version "2023.1"
-import "00_config.cga"
+#include "00_config.cga"
 
 Envelope(maxH, floorH, coverage) -->
-    // coverage shaping: keep whole footprint in city context, slight inset if low coverage
-    s(max(0.01,1),1,max(0.01,1))  // noop to keep shape
     PodiumTower(maxH, floorH)
 
-@Hidden
 PodiumTower(maxH, floorH) -->
-    sw = clamp(STREETWALL_MIN, STREETWALL_MAX, maxH)
-    podiumH = min(sw, 3 * floorH)                       // default 3-storey podium
-    split(y, {podium:podiumH:Podium | tower:(maxH-podiumH):Tower(floorH)})
+    split(y){ calcPodiumH(maxH,floorH) : Podium | ~1 : Tower(floorH) }
 
 Podium -->
     color("#cfcfcf")
     extrude(world.y)
     comp(f){ side: Facade | top: Roof }
+
 Facade --> color("#b8b8b8")
 Roof   --> color("#aaaaaa")
 
-@Hidden
 Tower(floorH) -->
     setback(PODIUM_SETBACK)
     color("#e0e0e0")
     extrude(world.y)
     comp(f){ side: TowerFacade | top: Roof }
+
 TowerFacade -->
-    split(y, unit(floorH)){ ~1:Floor | ~1:Floor | ~1:Floor | remainder:Floor }
+    split(y, unit(3.2)){ ~1 : Floor | remainder : Floor }
 Floor --> color("#d7d7d7")
 
+// --- Helper functions ---
 @Hidden
-clamp(a,b,x)=max(a,min(b,x))
+calcPodiumH(maxH,floorH) = min(clamp(STREETWALL_MIN,STREETWALL_MAX,maxH), 3*floorH)
+
+@Hidden
+clamp(a,b,x) = max(a, min(b,x))
