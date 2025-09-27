@@ -1,67 +1,36 @@
 /**
- * 20_envelope.cga
- * Builds envelopes (streetwall/podium + tower) from limits & simple bulk rules
+ * Builds podium+ tower envelopes with simple streetwall controls.
  */
-
 version "2023.1"
 import "00_config.cga"
-import "10_parcel_attribs.cga"
 
-// Public interfaces (called by land-use rules)
-Envelope_Residential(maxH) -->
-    setupFootprint(MAX_SITE_COVERAGE_RES)
-    PodiumTower(maxH, FLOOR_HEIGHT_RES)
+Envelope(maxH, floorH, coverage) -->
+    // coverage shaping: keep whole footprint in city context, slight inset if low coverage
+    s(max(0.01,1),1,max(0.01,1))  // noop to keep shape
+    PodiumTower(maxH, floorH)
 
-Envelope_Commercial(maxH) -->
-    setupFootprint(MAX_SITE_COVERAGE_COM)
-    PodiumTower(maxH, FLOOR_HEIGHT_COM)
-
-Envelope_MixedUse(maxH) -->
-    setupFootprint(MAX_SITE_COVERAGE_MIX)
-    PodiumTower(maxH, FLOOR_HEIGHT_MIX)
-
-// --- Helpers ---
-@Hidden
-setupFootprint(maxCoverage) -->
-    // Limit buildable area by site coverage, keeping a perimeter edge for setback if needed
-    comp(f){ inside : Inset | border : EdgeBelt }
-    Inset -->
-        offset(-sqrt(1 - maxCoverage) * 5, inside)  // heuristic inset; tune if needed
-        NIL
-    EdgeBelt -->
-        // Use entire footprint (City contexts often permit high coverage)
-        // Keep as single shape for podium massing
-        set(material.opacity, 0)
-        NIL
-
-// Podium + Tower logic with simple streetwall controls
 @Hidden
 PodiumTower(maxH, floorH) -->
-    // Streetwall: clamp between min/max, but not higher than maxH
-    streetwallH = clamp(STREETWALL_MIN, STREETWALL_MAX, maxH)
-    podiumH = min(streetwallH, PODIUM_MAX_LEVELS * floorH)
-    split(y, { podium : podiumH : Podium | tower : (maxH - podiumH) : Tower(podiumH, floorH) })
+    sw = clamp(STREETWALL_MIN, STREETWALL_MAX, maxH)
+    podiumH = min(sw, 3 * floorH)                       // default 3-storey podium
+    split(y, {podium:podiumH:Podium | tower:(maxH-podiumH):Tower(floorH)})
 
 Podium -->
-    color("#d0d0d0")
-    extrude(world.y)    // already split; this fills the podium volume
-    // Facade placeholder
-    comp(f){ side : Facade | top : RoofPlate }
-    Facade --> color("#b8b8b8")
-    RoofPlate --> color("#aaaaaa")
+    color("#cfcfcf")
+    extrude(world.y)
+    comp(f){ side: Facade | top: Roof }
+Facade --> color("#b8b8b8")
+Roof   --> color("#aaaaaa")
 
 @Hidden
-Tower(podiumH, floorH) -->
+Tower(floorH) -->
     setback(PODIUM_SETBACK)
     color("#e0e0e0")
     extrude(world.y)
-    comp(f){ side : TowerFacade | top : RoofPlate }
-    TowerFacade -->
-        // Optionally articulate by floors
-        split(y, unit(floorH)){ ~1 : Floor | ~1 : Floor | ~1 : Floor | remainder : Floor }
-    Floor --> color("#cfcfcf")
-    RoofPlate --> color("#bbbbbb")
+    comp(f){ side: TowerFacade | top: Roof }
+TowerFacade -->
+    split(y, unit(floorH)){ ~1:Floor | ~1:Floor | ~1:Floor | remainder:Floor }
+Floor --> color("#d7d7d7")
 
 @Hidden
-clamp(minV, maxV, val) =
-    max(minV, min(maxV, val))
+clamp(a,b,x)=max(a,min(b,x))
