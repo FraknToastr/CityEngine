@@ -1,28 +1,21 @@
-/**
- * Heritage + adjacency modifier (wire your joined fields here when ready).
- * Optional attribute examples below; default = "None".
- */
 version "2023.1"
-import "00_config.cga"
+#include "00_config.cga"
 
-attr HERITAGE_TYPE = "None"   // "State","Local","Contributory","Adjacent","None"
+attr HERITAGE_TYPE = "None"   // "State","Local","Adjacent","None"
 
-HeritageWrap(ruleName, baseMaxH) -->
-    case HERITAGE_TYPE == "State":
-        extrude(min(baseMaxH, 2*FLOOR_HEIGHT_RES))
-        HeritageStyle
-    case HERITAGE_TYPE == "Local":
-        extrude(min(baseMaxH, 3*FLOOR_HEIGHT_RES))
-        HeritageStyle
-    case HERITAGE_TYPE == "Adjacent":
-        setback(2)
-        i(ruleName)
-    else:
-        i(ruleName)
+HeritageWrap(baseMaxH) -->
+    case HERITAGE_TYPE == "State" :
+        extrude(min(baseMaxH, 2*FLOOR_HEIGHT_RES)) --> HeritageStyle
+    case HERITAGE_TYPE == "Local" :
+        extrude(min(baseMaxH, 3*FLOOR_HEIGHT_RES)) --> HeritageStyle
+    case HERITAGE_TYPE == "Adjacent" :
+        setback(2) --> LandUseLot
+    else :
+        LandUseLot
 
 HeritageStyle -->
     color("#9f7f7f")
-    comp(f){ front:Façade | side:Side | back:Side | top:Roof }
-Façade--> color("#846a6a")
-Side  --> color("#a78f8f")
-Roof  --> color("#6e5a5a")
+    comp(f){ front: Façade | side: Side | back: Side | top: Roof }
+Façade --> color("#846a6a")
+Side   --> color("#a78f8f")
+Roof   --> color("#6e5a5a")
