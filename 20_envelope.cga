@@ -5,12 +5,14 @@ Envelope(maxH, floorH, coverage) -->
     PodiumTower(maxH, floorH)
 
 PodiumTower(maxH, floorH) -->
-    split(y){ calcPodiumH(maxH,floorH) : Podium | ~1 : Tower(floorH) }
+    split(y){ calcPodiumH(maxH,floorH) : Podium |
+              [cite_start]~1 : Tower(floorH) } [cite: 9]
 
 Podium -->
     color("#cfcfcf")
-    extrude(world.y)
-    comp(f){ side: Facade | top: Roof }
+    extrude(world.y) **;** // ADDED semicolon
+    comp(f){ side: Facade |
+             [cite_start]top: Roof } **;** // ADDED semicolon [cite: 10]
 
 Facade --> color("#b8b8b8")
 Roof   --> color("#aaaaaa")
@@ -18,11 +20,13 @@ Roof   --> color("#aaaaaa")
 Tower(floorH) -->
     setback(PODIUM_SETBACK)
     color("#e0e0e0")
-    extrude(world.y)
-    comp(f){ side: TowerFacade | top: Roof }
+    extrude(world.y) **;** // ADDED semicolon
+    comp(f){ side: TowerFacade |
+             [cite_start]top: Roof } **;** // ADDED semicolon [cite: 11]
 
 TowerFacade -->
-    split(y, unit(3.2)){ ~1 : Floor | remainder : Floor }
+    split(y, unit(3.2)){ ~1 : Floor |
+                         [cite_start]remainder : Floor } **;** // ADDED semicolon [cite: 12]
 Floor --> color("#d7d7d7")
 
 // --- Helper functions ---
