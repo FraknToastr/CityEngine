@@ -30,11 +30,6 @@ HeritageStyle -->
     color("#9f7f7f")
     comp(f){ front: Façade | side: Side | back: Side | top: Roof }
 
-Façade -->
-    color("#846a6a")
-
-Side -->
-    color("#a78f8f")
-
-Roof -->
-    color("#6e5a5a")
+Façade --> color("#846a6a")
+Side   --> color("#a78f8f")
+Roof   --> color("#6e5a5a")
