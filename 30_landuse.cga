@@ -1,42 +1,41 @@
-/**
- * 30_landuse.cga
- * Zone/subzone → massing logic
- */
-version "2023.1"
-#include "00_config.cga"
-#include "10_parcel_attribs.cga"
-#include "20_envelope.cga"
+version "2025.0"
+import cfg : "00_config.cga"
+import att : "10_attribs.cga"
+import env : "20_envelope.cga"
 
 @Hidden
 ciContains(s, needle) = find(lower(s), lower(needle)) >= 0
 
 @StartRule
 LandUseLot -->
-    case ciContains(getZoneName(), "Capital City") : CapitalCityFamily
-    // FIXED: Grouped the conditions with parentheses to resolve "Unexpected token: s"
-    [cite_start]case (ciContains(getZoneName(), "Urban Corridor") || ciContains(getZoneName(), "Neighbourhood")) : CorridorNeighbourhoodFamily [cite: 6]
-    case ciContains(getZoneName(), "Infrastructure") : InfrastructureFamily
-    else : DefaultLot
+    case ciContains(att.getZoneName(), "Capital City") :
+        CapitalCityFamily
+    case ciContains(att.getZoneName(), "Urban Corridor") || ciContains(att.getZoneName(), "Neighbourhood") :
+        CorridorNeighbourhoodFamily
+    case ciContains(att.getZoneName(), "Infrastructure") :
+        InfrastructureFamily
+    else :
+        DefaultLot
 
 CapitalCityFamily -->
-    case ciContains(getSubzoneName(), "Central Core") :
-        Envelope(getMaxHeight(FLOOR_HEIGHT_COM), FLOOR_HEIGHT_COM, MAX_SITE_COVERAGE_COM)
-    case ciContains(getSubzoneName(), "Main Street") :
-        Envelope(getMaxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX)
-    case ciContains(getSubzoneName(), "Boulevard") :
-        Envelope(getMaxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX)
-    case ciContains(getSubzoneName(), "Frame") :
-        Envelope(getMaxHeight(FLOOR_HEIGHT_RES), FLOOR_HEIGHT_RES, MAX_SITE_COVERAGE_RES)
+    case ciContains(att.getSubzoneName(), "Central Core") :
+        env.Envelope(att.getMaxHeight(cfg.FLOOR_HEIGHT_COM), cfg.FLOOR_HEIGHT_COM, cfg.MAX_SITE_COVERAGE_COM)
+    case ciContains(att.getSubzoneName(), "Main Street") :
+        env.Envelope(att.getMaxHeight(cfg.FLOOR_HEIGHT_MIX), cfg.FLOOR_HEIGHT_MIX, cfg.MAX_SITE_COVERAGE_MIX)
+    case ciContains(att.getSubzoneName(), "Boulevard") :
+        env.Envelope(att.getMaxHeight(cfg.FLOOR_HEIGHT_MIX), cfg.FLOOR_HEIGHT_MIX, cfg.MAX_SITE_COVERAGE_MIX)
+    case ciContains(att.getSubzoneName(), "Frame") :
+        env.Envelope(att.getMaxHeight(cfg.FLOOR_HEIGHT_RES), cfg.FLOOR_HEIGHT_RES, cfg.MAX_SITE_COVERAGE_RES)
     else :
-        [cite_start]Envelope(getMaxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX) [cite: 7]
+        env.Envelope(att.getMaxHeight(cfg.FLOOR_HEIGHT_MIX), cfg.FLOOR_HEIGHT_MIX, cfg.MAX_SITE_COVERAGE_MIX)
 
 CorridorNeighbourhoodFamily -->
-    Envelope(getMaxHeight(FLOOR_HEIGHT_RES), FLOOR_HEIGHT_RES, MAX_SITE_COVERAGE_RES)
+    env.Envelope(att.getMaxHeight(cfg.FLOOR_HEIGHT_RES), cfg.FLOOR_HEIGHT_RES, cfg.MAX_SITE_COVERAGE_RES)
 
 InfrastructureFamily -->
-    extrude( min(getMaxHeight(FLOOR_HEIGHT_COM), 12) )
+    extrude(12)
     color("#8aa6c1")
 
 DefaultLot -->
-    extrude( min(getMaxHeight(FLOOR_HEIGHT_RES), 12) )
+    extrude(12)
     color("#c8c8c8")
