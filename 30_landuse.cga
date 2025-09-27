@@ -1,56 +1,64 @@
 /**
- * 30_landuse.cga
- * Maps Plan & Design Code zone/subzone labels to massing types.
- * Uses actual parcel height limits via maxHeight(...) from 10_parcel_attribs.
+ * Plan & Design Code mappings for City of Adelaide.
+ * Uses explicit subzone names (case-insensitive "contains" checks allow minor label differences).
  */
-
 version "2023.1"
 import "00_config.cga"
 import "10_parcel_attribs.cga"
 import "20_envelope.cga"
 
+// Helper string tests
+@Hidden
+ciContains(s, needle) = find(lower(s), lower(needle)) >= 0
+
 @StartRule
 LandUseLot -->
-    case startsWith(zone_name, "Capital City"):
-        CapitalCity
-    case contains(zone_name, "Neighbourhood") || contains(zone_name, "Corridor"):
-        NeighbourhoodCorridor
-    case contains(zone_name, "Infrastructure"):
-        Infrastructure
+    case ciContains(zone_name, "Capital City"):
+        CapitalCityFamily
+    case ciContains(zone_name, "Urban Corridor") || ciContains(zone_name, "Neighbourhood"):
+        CorridorNeighbourhoodFamily
+    case ciContains(zone_name, "Infrastructure"):
+        InfrastructureFamily
     else:
         DefaultLot
 
-// --- Capital City core mappings (tune by subzone_name if needed) ---
-CapitalCity -->
-    // Example: adjust floor height assumptions by predominant use
-    // Subzone overrides (update to your CCSZNAME list)
-    case contains(subzone_name, "Main Street") :
-        Envelope_MixedUse( maxHeight(FLOOR_HEIGHT_MIX) )
-    case contains(subzone_name, "Boulevard") :
-        Envelope_MixedUse( maxHeight(FLOOR_HEIGHT_MIX) )
-    case contains(subzone_name, "Core") || contains(zone_name, "Capital City Zone") :
-        Envelope_Commercial( maxHeight(FLOOR_HEIGHT_COM) )
+// ------------------ CAPITAL CITY ZONE ------------------
+CapitalCityFamily -->
+    case ciContains(subzone_name, "Central Core"):
+        // Highest intensity: commercial/mixed, big blocks
+        Envelope( maxHeight(FLOOR_HEIGHT_COM), FLOOR_HEIGHT_COM, MAX_SITE_COVERAGE_COM )
+    case ciContains(subzone_name, "Main Street"):
+        // Fine grain, active frontages, shop-tops
+        Envelope( maxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX )
+    case ciContains(subzone_name, "Boulevard"):
+        // Wider streets; mixed with stronger podium streetwall
+        Envelope( maxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX )
+    case ciContains(subzone_name, "City Frame") || ciContains(subzone_name, "Frame"):
+        // Transition to neighbourhood scale
+        Envelope( maxHeight(FLOOR_HEIGHT_RES), FLOOR_HEIGHT_RES, MAX_SITE_COVERAGE_RES )
     else:
-        Envelope_MixedUse( maxHeight(FLOOR_HEIGHT_MIX) )
+        // If subzone not set, default to mixed-use
+        Envelope( maxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX )
 
-NeighbourhoodCorridor -->
-    // Typically residential focus with shop-tops in corridors
-    case contains(zone_name, "Corridor"):
-        Envelope_MixedUse( maxHeight(FLOOR_HEIGHT_MIX) )
+// -------- URBAN CORRIDOR / NEIGHBOURHOOD ---------------
+CorridorNeighbourhoodFamily -->
+    case ciContains(zone_name, "Urban Corridor") && ciContains(subzone_name, "Main Street"):
+        Envelope( maxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, 0.80 )
+    case ciContains(zone_name, "Urban Corridor") && ciContains(subzone_name, "Business"):
+        Envelope( maxHeight(FLOOR_HEIGHT_COM), FLOOR_HEIGHT_COM, 0.85 )
+    case ciContains(zone_name, "Urban Corridor") && (ciContains(subzone_name, "Living") || ciContains(subzone_name, "Living (H)")):
+        Envelope( maxHeight(FLOOR_HEIGHT_RES), FLOOR_HEIGHT_RES, 0.75 )
     else:
-        Envelope_Residential( maxHeight(FLOOR_HEIGHT_RES) )
+        // Generic neighbourhood (low to mid-rise)
+        Envelope( maxHeight(FLOOR_HEIGHT_RES), FLOOR_HEIGHT_RES, MAX_SITE_COVERAGE_RES )
 
-Infrastructure -->
-    // Low-rise envelope; you may want custom asset forms instead of buildings
+// ---------------------- INFRASTRUCTURE -----------------
+InfrastructureFamily -->
+    // Often utility or transport buildings; keep simple volumes
     extrude( min( maxHeight(FLOOR_HEIGHT_COM), 12) )
     color("#8aa6c1")
 
+// ------------------------- DEFAULT ---------------------
 DefaultLot -->
     extrude( min( maxHeight(FLOOR_HEIGHT_RES), 12) )
-    color("#cccccc")
-
-// Utility string tests
-@Hidden
-startsWith(s, prefix) = substring(s, 0, strlen(prefix)) == prefix
-@Hidden
-contains(s, needle) = find(s, needle) >= 0
+    color("#c8c8c8")
