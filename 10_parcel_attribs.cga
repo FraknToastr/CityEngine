@@ -1,44 +1,67 @@
 /**
+ * 10_parcel_attribs.cga
+ * Fixed version (no inline conditionals in attr).
  * Maps SAPPA-derived fields to normalized attributes.
- * Expects: CCZNAME, CCSZNAME, NACZNAME, IZNAME, MBHMVALUE, MBHLVALUE, Shape_Area
  */
+
 version "2023.1"
 
+// --- Raw attributes (from feature layer) ---
 attr CCZNAME = ""
 attr CCSZNAME = ""
 attr NACZNAME = ""
-attr IZNAME = ""
-attr MBHMVALUE = 0
-attr MBHLVALUE = 0
+attr IZNAME  = ""
+attr MBHMVALUE = "0"     // keep as string, convert later
+attr MBHLVALUE = "0"
 attr Shape_Area = 0
 attr parcel_id = ""
 
-// Normalized
-@Hidden
-attr zone_name =
-    CCZNAME != "" ? CCZNAME :
-    (NACZNAME != "" ? NACZNAME :
-    (IZNAME  != "" ? IZNAME  : "Unzoned"))
+// --- Normalised / derived ---
+// Declare empty first; fill via functions in rules
+attr zone_name = ""
+attr subzone_name = ""
+attr height_m = 0
+attr height_levels = 0
 
-@Hidden
-attr subzone_name = CCSZNAME
+// ------------------ FUNCTIONS ------------------
 
+// Convert string to float safely
 @Hidden
-attr height_m = toFloat(MBHMVALUE)
-@Hidden
-attr height_levels = toFloat(MBHLVALUE)
+toFloatSafe(val) =
+    case val == "" :
+        0
+    else :
+        float(val)
 
+// Choose zone name from available fields
 @Hidden
-toFloat(v) = typeof(v) == "string" ? float(v, 0) : v
+deriveZone() =
+    case CCZNAME != "" :
+        CCZNAME
+    case NACZNAME != "" :
+        NACZNAME
+    case IZNAME != "" :
+        IZNAME
+    else :
+        "Unzoned"
 
-// Prefer stricter of metres vs. levels * storey height (caller passes context)
+// Resolve numeric height from metres/levels
 @Hidden
-maxHeight(floorH) =
-    case height_m > 0 && height_levels > 0:
-        min(height_m, height_levels * floorH)
-    case height_m > 0:
-        height_m
-    case height_levels > 0:
-        height_levels * floorH
-    else:
+resolveHeight(floorH) =
+    case toFloatSafe(MBHMVALUE) > 0 && toFloatSafe(MBHLVALUE) > 0 :
+        min(toFloatSafe(MBHMVALUE), toFloatSafe(MBHLVALUE) * floorH)
+    case toFloatSafe(MBHMVALUE) > 0 :
+        toFloatSafe(MBHMVALUE)
+    case toFloatSafe(MBHLVALUE) > 0 :
+        toFloatSafe(MBHLVALUE) * floorH
+    else :
         12
+
+// ------------------ ENTRY FOR OTHER FILES ------------------
+@StartRule
+InitAttribs -->
+    zone_name     = deriveZone()
+    subzone_name  = CCSZNAME
+    height_m      = toFloatSafe(MBHMVALUE)
+    height_levels = toFloatSafe(MBHLVALUE)
+    NIL
