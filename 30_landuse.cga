@@ -13,7 +13,8 @@ ciContains(s, needle) = find(lower(s), lower(needle)) >= 0
 @StartRule
 LandUseLot -->
     case ciContains(getZoneName(), "Capital City") : CapitalCityFamily
-    case ciContains(getZoneName(), "Urban Corridor") || ciContains(getZoneName(), "Neighbourhood") : CorridorNeighbourhoodFamily
+    // FIXED: Grouped the conditions with parentheses to resolve "Unexpected token: s"
+    [cite_start]case (ciContains(getZoneName(), "Urban Corridor") || ciContains(getZoneName(), "Neighbourhood")) : CorridorNeighbourhoodFamily [cite: 6]
     case ciContains(getZoneName(), "Infrastructure") : InfrastructureFamily
     else : DefaultLot
 
@@ -27,7 +28,7 @@ CapitalCityFamily -->
     case ciContains(getSubzoneName(), "Frame") :
         Envelope(getMaxHeight(FLOOR_HEIGHT_RES), FLOOR_HEIGHT_RES, MAX_SITE_COVERAGE_RES)
     else :
-        Envelope(getMaxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX)
+        [cite_start]Envelope(getMaxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX) [cite: 7]
 
 CorridorNeighbourhoodFamily -->
     Envelope(getMaxHeight(FLOOR_HEIGHT_RES), FLOOR_HEIGHT_RES, MAX_SITE_COVERAGE_RES)
