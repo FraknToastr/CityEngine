@@ -1,64 +1,41 @@
 /**
- * Plan & Design Code mappings for City of Adelaide.
- * Uses explicit subzone names (case-insensitive "contains" checks allow minor label differences).
+ * 30_landuse.cga
+ * Zone/subzone → massing logic
  */
 version "2023.1"
-import "00_config.cga"
-import "10_parcel_attribs.cga"
-import "20_envelope.cga"
+#include "00_config.cga"
+#include "10_parcel_attribs.cga"
+#include "20_envelope.cga"
 
-// Helper string tests
 @Hidden
 ciContains(s, needle) = find(lower(s), lower(needle)) >= 0
 
 @StartRule
 LandUseLot -->
-    case ciContains(zone_name, "Capital City"):
-        CapitalCityFamily
-    case ciContains(zone_name, "Urban Corridor") || ciContains(zone_name, "Neighbourhood"):
-        CorridorNeighbourhoodFamily
-    case ciContains(zone_name, "Infrastructure"):
-        InfrastructureFamily
-    else:
-        DefaultLot
+    case ciContains(getZoneName(), "Capital City") : CapitalCityFamily
+    case ciContains(getZoneName(), "Urban Corridor") || ciContains(getZoneName(), "Neighbourhood") : CorridorNeighbourhoodFamily
+    case ciContains(getZoneName(), "Infrastructure") : InfrastructureFamily
+    else : DefaultLot
 
-// ------------------ CAPITAL CITY ZONE ------------------
 CapitalCityFamily -->
-    case ciContains(subzone_name, "Central Core"):
-        // Highest intensity: commercial/mixed, big blocks
-        Envelope( maxHeight(FLOOR_HEIGHT_COM), FLOOR_HEIGHT_COM, MAX_SITE_COVERAGE_COM )
-    case ciContains(subzone_name, "Main Street"):
-        // Fine grain, active frontages, shop-tops
-        Envelope( maxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX )
-    case ciContains(subzone_name, "Boulevard"):
-        // Wider streets; mixed with stronger podium streetwall
-        Envelope( maxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX )
-    case ciContains(subzone_name, "City Frame") || ciContains(subzone_name, "Frame"):
-        // Transition to neighbourhood scale
-        Envelope( maxHeight(FLOOR_HEIGHT_RES), FLOOR_HEIGHT_RES, MAX_SITE_COVERAGE_RES )
-    else:
-        // If subzone not set, default to mixed-use
-        Envelope( maxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX )
+    case ciContains(getSubzoneName(), "Central Core") :
+        Envelope(getMaxHeight(FLOOR_HEIGHT_COM), FLOOR_HEIGHT_COM, MAX_SITE_COVERAGE_COM)
+    case ciContains(getSubzoneName(), "Main Street") :
+        Envelope(getMaxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX)
+    case ciContains(getSubzoneName(), "Boulevard") :
+        Envelope(getMaxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX)
+    case ciContains(getSubzoneName(), "Frame") :
+        Envelope(getMaxHeight(FLOOR_HEIGHT_RES), FLOOR_HEIGHT_RES, MAX_SITE_COVERAGE_RES)
+    else :
+        Envelope(getMaxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, MAX_SITE_COVERAGE_MIX)
 
-// -------- URBAN CORRIDOR / NEIGHBOURHOOD ---------------
 CorridorNeighbourhoodFamily -->
-    case ciContains(zone_name, "Urban Corridor") && ciContains(subzone_name, "Main Street"):
-        Envelope( maxHeight(FLOOR_HEIGHT_MIX), FLOOR_HEIGHT_MIX, 0.80 )
-    case ciContains(zone_name, "Urban Corridor") && ciContains(subzone_name, "Business"):
-        Envelope( maxHeight(FLOOR_HEIGHT_COM), FLOOR_HEIGHT_COM, 0.85 )
-    case ciContains(zone_name, "Urban Corridor") && (ciContains(subzone_name, "Living") || ciContains(subzone_name, "Living (H)")):
-        Envelope( maxHeight(FLOOR_HEIGHT_RES), FLOOR_HEIGHT_RES, 0.75 )
-    else:
-        // Generic neighbourhood (low to mid-rise)
-        Envelope( maxHeight(FLOOR_HEIGHT_RES), FLOOR_HEIGHT_RES, MAX_SITE_COVERAGE_RES )
+    Envelope(getMaxHeight(FLOOR_HEIGHT_RES), FLOOR_HEIGHT_RES, MAX_SITE_COVERAGE_RES)
 
-// ---------------------- INFRASTRUCTURE -----------------
 InfrastructureFamily -->
-    // Often utility or transport buildings; keep simple volumes
-    extrude( min( maxHeight(FLOOR_HEIGHT_COM), 12) )
+    extrude( min(getMaxHeight(FLOOR_HEIGHT_COM), 12) )
     color("#8aa6c1")
 
-// ------------------------- DEFAULT ---------------------
 DefaultLot -->
-    extrude( min( maxHeight(FLOOR_HEIGHT_RES), 12) )
+    extrude( min(getMaxHeight(FLOOR_HEIGHT_RES), 12) )
     color("#c8c8c8")
