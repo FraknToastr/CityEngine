@@ -1,14 +1,8 @@
-/**
- * Entry point – set Start Rule to Main.Lot
- * Hook up heritage (if fields joined) and call landuse rules.
- */
 version "2023.1"
-import "10_parcel_attribs.cga"
-import "30_landuse.cga"
-import "40_heritage.cga"
+#include "10_parcel_attribs.cga"
+#include "30_landuse.cga"
+#include "40_heritage.cga"
 
 @StartRule
 Lot -->
-    // If you have a joined field like HERITAGE_CLASS, map it here:
-    // attr HERITAGE_TYPE = HERITAGE_CLASS
-    HeritageWrap("LandUseLot", max( height_m, height_levels*3.2 ))
+    HeritageWrap(getMaxHeight(3.2))
