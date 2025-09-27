@@ -1,25 +1,40 @@
-version "2023.1"
-#include "00_config.cga"
-#include "10_parcel_attribs.cga" // ADDED: Required for getMaxHeight
+version "2025.0"
+import cfg : "00_config.cga"
+import luse : "30_landuse.cga"
 
 attr HERITAGE_TYPE = "None"   // "State","Local","Adjacent","None"
 
 HeritageWrap(baseMaxH) -->
     case HERITAGE_TYPE == "State" :
-        extrude(min(baseMaxH, 2*FLOOR_HEIGHT_RES)) HeritageStyle // REMOVED redundant '-->'
+        HeritageState(baseMaxH)
     case HERITAGE_TYPE == "Local" :
-        extrude(min(baseMaxH, 3*FLOOR_HEIGHT_RES)) HeritageStyle // REMOVED redundant '-->'
+        HeritageLocal(baseMaxH)
     case HERITAGE_TYPE == "Adjacent" :
-        setback(2) LandUseLot // REMOVED redundant '-->'
+        HeritageAdjacent
     else :
-        LandUseLot
+        luse.LandUseLot
+
+HeritageState(baseMaxH) -->
+    extrude(min(baseMaxH, 2 * cfg.FLOOR_HEIGHT_RES))
+    HeritageStyle
+
+HeritageLocal(baseMaxH) -->
+    extrude(min(baseMaxH, 3 * cfg.FLOOR_HEIGHT_RES))
+    HeritageStyle
+
+HeritageAdjacent -->
+    setback(2)
+    luse.LandUseLot
 
 HeritageStyle -->
     color("#9f7f7f")
-    comp(f){ front: Façade |
-             side: Side |
-             back: Side |
-             [cite_start]top: Roof } // FIXED comp block structure [cite: 4]
-Façade --> color("#846a6a")
-Side   --> color("#a78f8f")
-Roof   --> color("#6e5a6a")
+    comp(f){ front: Façade | side: Side | back: Side | top: Roof }
+
+Façade -->
+    color("#846a6a")
+
+Side -->
+    color("#a78f8f")
+
+Roof -->
+    color("#6e5a5a")
