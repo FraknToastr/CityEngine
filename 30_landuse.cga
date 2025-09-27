@@ -1,0 +1,56 @@
+/**
+ * 30_landuse.cga
+ * Maps Plan & Design Code zone/subzone labels to massing types.
+ * Uses actual parcel height limits via maxHeight(...) from 10_parcel_attribs.
+ */
+
+version "2023.1"
+import "00_config.cga"
+import "10_parcel_attribs.cga"
+import "20_envelope.cga"
+
+@StartRule
+LandUseLot -->
+    case startsWith(zone_name, "Capital City"):
+        CapitalCity
+    case contains(zone_name, "Neighbourhood") || contains(zone_name, "Corridor"):
+        NeighbourhoodCorridor
+    case contains(zone_name, "Infrastructure"):
+        Infrastructure
+    else:
+        DefaultLot
+
+// --- Capital City core mappings (tune by subzone_name if needed) ---
+CapitalCity -->
+    // Example: adjust floor height assumptions by predominant use
+    // Subzone overrides (update to your CCSZNAME list)
+    case contains(subzone_name, "Main Street") :
+        Envelope_MixedUse( maxHeight(FLOOR_HEIGHT_MIX) )
+    case contains(subzone_name, "Boulevard") :
+        Envelope_MixedUse( maxHeight(FLOOR_HEIGHT_MIX) )
+    case contains(subzone_name, "Core") || contains(zone_name, "Capital City Zone") :
+        Envelope_Commercial( maxHeight(FLOOR_HEIGHT_COM) )
+    else:
+        Envelope_MixedUse( maxHeight(FLOOR_HEIGHT_MIX) )
+
+NeighbourhoodCorridor -->
+    // Typically residential focus with shop-tops in corridors
+    case contains(zone_name, "Corridor"):
+        Envelope_MixedUse( maxHeight(FLOOR_HEIGHT_MIX) )
+    else:
+        Envelope_Residential( maxHeight(FLOOR_HEIGHT_RES) )
+
+Infrastructure -->
+    // Low-rise envelope; you may want custom asset forms instead of buildings
+    extrude( min( maxHeight(FLOOR_HEIGHT_COM), 12) )
+    color("#8aa6c1")
+
+DefaultLot -->
+    extrude( min( maxHeight(FLOOR_HEIGHT_RES), 12) )
+    color("#cccccc")
+
+// Utility string tests
+@Hidden
+startsWith(s, prefix) = substring(s, 0, strlen(prefix)) == prefix
+@Hidden
+contains(s, needle) = find(s, needle) >= 0
