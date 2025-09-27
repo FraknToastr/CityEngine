@@ -1,9 +1,9 @@
-version "2023.1"
-[cite_start]#include "00_config.cga" // ADDED: Required for FLOOR_HEIGHT_RES constant [cite: 2]
-#include "10_parcel_attribs.cga"
-#include "30_landuse.cga"
-#include "40_heritage.cga"
+version "2025.0"
+
+import att : "10_parcel_attribs.cga"
+import land : "30_landuse.cga"
+import her : "40_heritage.cga"
 
 @StartRule
 Lot -->
-    [cite_start]HeritageWrap(getMaxHeight(FLOOR_HEIGHT_RES)) // Using constant name for 3.2 [cite: 2]
+    her.HeritageWrap(att.getMaxHeight(att.FLOOR_HEIGHT_RES))
