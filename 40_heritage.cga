@@ -1,0 +1,36 @@
+/**
+ * 40_heritage.cga
+ * Heritage & adjacency overlays (hook this into Main if/when you add fields)
+ * Expected future attributes:
+ *  - HERITAGE_TYPE ("State","Local","Contributory","Adjacent","None")
+ *  - Optional: heritage height caps, façade retention flags, etc.
+ */
+
+version "2023.1"
+import "00_config.cga"
+
+attr HERITAGE_TYPE = "None"
+
+// Simple visual & massing response
+HeritageModifier(inShapeRule, baseMaxH) -->
+    case HERITAGE_TYPE == "State":
+        // Strong conservation – cap to 2 storeys, emphasize façade
+        extrude(min(baseMaxH, 2 * FLOOR_HEIGHT_RES))
+        color("#9f7f7f")
+        FacadeEmphasis
+    case HERITAGE_TYPE == "Local":
+        extrude(min(baseMaxH, 3 * FLOOR_HEIGHT_RES))
+        color("#b48f8f")
+        FacadeEmphasis
+    case HERITAGE_TYPE == "Adjacent":
+        // Step down near heritage edge – simple placeholder rule
+        setback(2)
+        i(inShapeRule)
+    else:
+        i(inShapeRule)
+
+FacadeEmphasis -->
+    comp(f){ front : Façade | side : Side | back : Side | top : Roof }
+Façade --> color("#8a6a6a")
+Side   --> color("#a89292")
+Roof   --> color("#6f5a5a")
