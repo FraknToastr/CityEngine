@@ -1,17 +1,14 @@
-	/**
-	 * 00_config.cga
-	 * Shared constants for City of Adelaide
-	 */
-	version "2023.1"
-	
-	const FLOOR_HEIGHT_RES = 3.2
-	const FLOOR_HEIGHT_COM = 3.6
-	const FLOOR_HEIGHT_MIX = 3.4
-	
-	const PODIUM_SETBACK   = 3.0
-	const STREETWALL_MIN   = 8.0
-	const STREETWALL_MAX   = 24.0
-	
-	const MAX_SITE_COVERAGE_RES = 0.70
-	const MAX_SITE_COVERAGE_COM = 0.90
-	const MAX_SITE_COVERAGE_MIX = 0.85
+version "2025.0"
+
+// Shared constants
+const FLOOR_HEIGHT_RES = 3.2
+const FLOOR_HEIGHT_COM = 3.6
+const FLOOR_HEIGHT_MIX = 3.4
+
+const PODIUM_SETBACK   = 3.0
+const STREETWALL_MIN   = 8.0
+const STREETWALL_MAX   = 24.0
+
+const MAX_SITE_COVERAGE_RES = 0.70
+const MAX_SITE_COVERAGE_COM = 0.90
+const MAX_SITE_COVERAGE_MIX = 0.85
