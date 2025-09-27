@@ -1,6 +1,6 @@
 version "2025.0"
 
-// Raw attributes (from your parcel import)
+// Raw attributes
 attr CCZNAME = ""
 attr CCSZNAME = ""
 attr NACZNAME = ""
@@ -10,7 +10,7 @@ attr MBHLVALUE = "0"
 attr Shape_Area = 0
 attr parcel_id = ""
 
-// Helper getters (no reassigning attr)
+// Helpers
 @Hidden
 toFloatSafe(val) =
     case val == "" : 0 else : float(val)
