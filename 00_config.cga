@@ -1,0 +1,26 @@
+/**
+ * 00_config.cga
+ * Global configuration & constants for City of Adelaide
+ * (Plan and Design Code-aligned placeholders)
+ *
+ * NOTE (policy intent): These defaults implement general Code intent.
+ * Always defer to parcel attributes (MBHMVALUE / MBHLVALUE) when present.
+ */
+
+version "2023.1"
+
+// --- General assumptions (override per use as needed) ---
+const FLOOR_HEIGHT_RES = 3.2       // typical residential storey height (m)
+const FLOOR_HEIGHT_COM = 3.5       // typical commercial storey height (m)
+const FLOOR_HEIGHT_MIX = 3.4       // mixed-use average (m)
+const PODIUM_MAX_LEVELS = 3        // baseline podium control (adjust per subzone)
+const PODIUM_SETBACK   = 3         // tower stepback from street edge (m)
+
+// Coverage & bulk controls (tunable by zone)
+const MAX_SITE_COVERAGE_RES = 0.7
+const MAX_SITE_COVERAGE_COM = 0.9
+const MAX_SITE_COVERAGE_MIX = 0.85
+
+// Streetwall controls (can be varied by frontage/streetscape overlays)
+const STREETWALL_MIN = 8           // m
+const STREETWALL_MAX = 20          // m
