@@ -1,31 +1,23 @@
 /**
  * 10_parcel_attribs.cga
- * Fixed version (no inline conditionals in attr).
- * Maps SAPPA-derived fields to normalized attributes.
+ * Correct version: no reassignment of attr, only functions.
  */
 
 version "2023.1"
 
-// --- Raw attributes (from feature layer) ---
+// --- Raw attributes from feature class ---
 attr CCZNAME = ""
 attr CCSZNAME = ""
 attr NACZNAME = ""
-attr IZNAME  = ""
-attr MBHMVALUE = "0"     // keep as string, convert later
+attr IZNAME = ""
+attr MBHMVALUE = "0"    // keep as text, convert later
 attr MBHLVALUE = "0"
 attr Shape_Area = 0
 attr parcel_id = ""
 
-// --- Normalised / derived ---
-// Declare empty first; fill via functions in rules
-attr zone_name = ""
-attr subzone_name = ""
-attr height_m = 0
-attr height_levels = 0
-
 // ------------------ FUNCTIONS ------------------
 
-// Convert string to float safely
+// Convert safely to float
 @Hidden
 toFloatSafe(val) =
     case val == "" :
@@ -33,9 +25,9 @@ toFloatSafe(val) =
     else :
         float(val)
 
-// Choose zone name from available fields
+// Unified zone name
 @Hidden
-deriveZone() =
+getZoneName() =
     case CCZNAME != "" :
         CCZNAME
     case NACZNAME != "" :
@@ -45,23 +37,25 @@ deriveZone() =
     else :
         "Unzoned"
 
-// Resolve numeric height from metres/levels
+// Subzone (directly from CCSZNAME)
 @Hidden
-resolveHeight(floorH) =
-    case toFloatSafe(MBHMVALUE) > 0 && toFloatSafe(MBHLVALUE) > 0 :
-        min(toFloatSafe(MBHMVALUE), toFloatSafe(MBHLVALUE) * floorH)
-    case toFloatSafe(MBHMVALUE) > 0 :
-        toFloatSafe(MBHMVALUE)
-    case toFloatSafe(MBHLVALUE) > 0 :
-        toFloatSafe(MBHLVALUE) * floorH
+getSubzoneName() = CCSZNAME
+
+// Heights
+@Hidden
+getHeightMetres() = toFloatSafe(MBHMVALUE)
+
+@Hidden
+getHeightLevels() = toFloatSafe(MBHLVALUE)
+
+// Combined height preference
+@Hidden
+getMaxHeight(floorH) =
+    case getHeightMetres() > 0 && getHeightLevels() > 0 :
+        min(getHeightMetres(), getHeightLevels() * floorH)
+    case getHeightMetres() > 0 :
+        getHeightMetres()
+    case getHeightLevels() > 0 :
+        getHeightLevels() * floorH
     else :
         12
-
-// ------------------ ENTRY FOR OTHER FILES ------------------
-@StartRule
-InitAttribs -->
-    zone_name     = deriveZone()
-    subzone_name  = CCSZNAME
-    height_m      = toFloatSafe(MBHMVALUE)
-    height_levels = toFloatSafe(MBHLVALUE)
-    NIL
