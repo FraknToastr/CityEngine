@@ -1,6 +1,6 @@
 version "2025.0"
 import cfg : "00_config.cga"
-import att : "10_attribs.cga"
+import att : "10_parcel_attribs.cga"
 import env : "20_envelope.cga"
 
 @Hidden
