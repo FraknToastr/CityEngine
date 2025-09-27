@@ -1,37 +1,36 @@
-version "2023.1"
-#include "00_config.cga"
+version "2025.0"
+import cfg : "00_config.cga"
 
 Envelope(maxH, floorH, coverage) -->
     PodiumTower(maxH, floorH)
 
 PodiumTower(maxH, floorH) -->
-    split(y){ calcPodiumH(maxH,floorH) : Podium |
-              [cite_start]~1 : Tower(floorH) } [cite: 9]
+    split(y){
+        podiumHeight(maxH,floorH) : Podium |
+        ~1 : Tower(floorH)
+    }
 
 Podium -->
     color("#cfcfcf")
-    extrude(world.y) **;** // ADDED semicolon
-    comp(f){ side: Facade |
-             [cite_start]top: Roof } **;** // ADDED semicolon [cite: 10]
+    extrude(10)
+    Facade
 
 Facade --> color("#b8b8b8")
 Roof   --> color("#aaaaaa")
 
 Tower(floorH) -->
-    setback(PODIUM_SETBACK)
+    setback(cfg.PODIUM_SETBACK)
     color("#e0e0e0")
-    extrude(world.y) **;** // ADDED semicolon
-    comp(f){ side: TowerFacade |
-             [cite_start]top: Roof } **;** // ADDED semicolon [cite: 11]
+    extrude(20)
+    TowerFacade
 
 TowerFacade -->
-    split(y, unit(3.2)){ ~1 : Floor |
-                         [cite_start]remainder : Floor } **;** // ADDED semicolon [cite: 12]
+    split(y){ 3 : Floor | ~1 : Floor }
+
 Floor --> color("#d7d7d7")
 
-// --- Helper functions ---
 @Hidden
-calcPodiumH(maxH,floorH) = min(clamp(STREETWALL_MIN,STREETWALL_MAX,maxH), 3*floorH)
+podiumHeight(maxH,floorH) = min(clamp(cfg.STREETWALL_MIN,cfg.STREETWALL_MAX,maxH), 3*floorH)
 
 @Hidden
-clamp(a,b,x) = max(a, min(b,x))
+clamp(a,b,x) = max(a,min(b,x))
