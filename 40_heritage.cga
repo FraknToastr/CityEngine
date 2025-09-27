@@ -1,21 +1,25 @@
 version "2023.1"
 #include "00_config.cga"
+#include "10_parcel_attribs.cga" // ADDED: Required for getMaxHeight
 
 attr HERITAGE_TYPE = "None"   // "State","Local","Adjacent","None"
 
 HeritageWrap(baseMaxH) -->
     case HERITAGE_TYPE == "State" :
-        extrude(min(baseMaxH, 2*FLOOR_HEIGHT_RES)) --> HeritageStyle
+        extrude(min(baseMaxH, 2*FLOOR_HEIGHT_RES)) HeritageStyle // REMOVED redundant '-->'
     case HERITAGE_TYPE == "Local" :
-        extrude(min(baseMaxH, 3*FLOOR_HEIGHT_RES)) --> HeritageStyle
+        extrude(min(baseMaxH, 3*FLOOR_HEIGHT_RES)) HeritageStyle // REMOVED redundant '-->'
     case HERITAGE_TYPE == "Adjacent" :
-        setback(2) --> LandUseLot
+        setback(2) LandUseLot // REMOVED redundant '-->'
     else :
         LandUseLot
 
 HeritageStyle -->
     color("#9f7f7f")
-    comp(f){ front: Façade | side: Side | back: Side | top: Roof }
+    comp(f){ front: Façade |
+             side: Side |
+             back: Side |
+             [cite_start]top: Roof } // FIXED comp block structure [cite: 4]
 Façade --> color("#846a6a")
 Side   --> color("#a78f8f")
-Roof   --> color("#6e5a5a")
+Roof   --> color("#6e5a6a")
