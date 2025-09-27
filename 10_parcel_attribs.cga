@@ -1,54 +1,36 @@
-/**
- * 10_parcel_attribs.cga
- * Correct version: no reassignment of attr, only functions.
- */
+version "2025.0"
 
-version "2023.1"
-
-// --- Raw attributes from feature class ---
+// Raw attributes (from your parcel import)
 attr CCZNAME = ""
 attr CCSZNAME = ""
 attr NACZNAME = ""
 attr IZNAME = ""
-attr MBHMVALUE = "0"    // keep as text, convert later
+attr MBHMVALUE = "0"
 attr MBHLVALUE = "0"
 attr Shape_Area = 0
 attr parcel_id = ""
 
-// ------------------ FUNCTIONS ------------------
-
-// Convert safely to float
+// Helper getters (no reassigning attr)
 @Hidden
 toFloatSafe(val) =
-    case val == "" :
-        0
-    else :
-        float(val)
+    case val == "" : 0 else : float(val)
 
-// Unified zone name
 @Hidden
 getZoneName() =
-    case CCZNAME != "" :
-        CCZNAME
-    case NACZNAME != "" :
-        NACZNAME
-    case IZNAME != "" :
-        IZNAME
-    else :
-        "Unzoned"
+    case CCZNAME != "" : CCZNAME
+    case NACZNAME != "" : NACZNAME
+    case IZNAME != "" : IZNAME
+    else : "Unzoned"
 
-// Subzone (directly from CCSZNAME)
 @Hidden
 getSubzoneName() = CCSZNAME
 
-// Heights
 @Hidden
 getHeightMetres() = toFloatSafe(MBHMVALUE)
 
 @Hidden
 getHeightLevels() = toFloatSafe(MBHLVALUE)
 
-// Combined height preference
 @Hidden
 getMaxHeight(floorH) =
     case getHeightMetres() > 0 && getHeightLevels() > 0 :
