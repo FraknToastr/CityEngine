@@ -1,0 +1,42 @@
+version "2025.0"
+
+// -----------------------------------------------------------------------------
+// Import base rule package
+// -----------------------------------------------------------------------------
+import Parcel_Rules_01.cga
+
+// -----------------------------------------------------------------------------
+// Attributes
+// -----------------------------------------------------------------------------
+attr PodiumHeight = 12          // metres
+attr TowerSetbackFront = 3      // metres
+attr TowerSetbackSide  = 3      // metres
+attr TowerSetbackRear  = 3      // metres
+attr TowerHeightMin = 30        // metres
+attr TowerHeightMax = 150       // metres
+
+// -----------------------------------------------------------------------------
+// Start Rule
+// -----------------------------------------------------------------------------
+@StartRule
+Lot -->
+    extrude(getHeightForParcel())
+    comp(f){ side : Podium | top : Tower }
+
+// -----------------------------------------------------------------------------
+// Podium
+// -----------------------------------------------------------------------------
+Podium -->
+    extrude(PodiumHeight)
+    color("#999999")
+    comp(f){ top : Tower }
+
+// -----------------------------------------------------------------------------
+// Tower
+// -----------------------------------------------------------------------------
+Tower -->
+    offset(-TowerSetbackFront)
+    offset(-TowerSetbackSide)
+    offset(-TowerSetbackRear)
+    extrude(rand(TowerHeightMin, TowerHeightMax))
+    color("#6666cc")
