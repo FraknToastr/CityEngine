@@ -1,90 +1,91 @@
-# Adelaide Digital Twin – CityEngine CGA Rules
+# Adelaide Digital Twin – CGA Rule Development Notes
 
-This repository contains a complete set of **CGA rule files** for building a 3D Digital Twin of the City of Adelaide in Esri CityEngine. These rules are aligned with the **South Australian Planning and Design Code (PDI Act)** and are designed to map parcels, zones, and subzones into extruded massings that reflect planning constraints.
-
----
-
-## 📂 File Overview
-
-### 01_Parcel_Rules.cga
-- Handles **parcel-level attributes** from the cadastre.
-- Reads Planning & Design Code overlay fields (e.g. `CCZ_value`, `CCSZ_name`, `MBHM_value`, `MBHL_value`).
-- Resolves **extrusion height**:
-  - If `MBHM_value == 9999` → apply Inspector parameter `DummyHeightCap` (default 150m).
-  - Else if `MBHM_value > 0` → use that value in metres.
-  - Else if `MBHL_value > 0` → multiply by `LevelHeight` (default 3.5m).
-  - Else → fallback to `DefaultHeight` (default 10m).
-  - Special case: if `CCZ_value == "APL"` (Adelaide Park Lands), extrusion is fixed to **1m**.
-- Applies **colour mapping** by `CCSZ_name` (Capital City Subzones):
-  - *Adelaide Aquatic Centre* → `#4DB6AC`  
-  - *City Frame* → `#80CBC4`  
-  - *Cultural Institutions* → `#9575CD`  
-  - *City High Street* → `#AED581`  
-  - *Entertainment* → `#F06292`  
-  - *East Terrace* → `#64B5F6`  
-  - *Gouger and Grote Street* → `#BA68C8`  
-  - *Health* → `#81C784`  
-  - *Hindley Street* → `#FF8A65`  
-  - *Innovation* → `#4FC3F7`  
-  - *Medium-High Intensity* → `#FFF176`  
-  - *Melbourne Street West* → `#A1887F`  
-  - *North Adelaide Low Intensity* → `#90A4AE`  
-  - *Rundle Mall* → `#F48FB1`  
-  - *Rundle Street* → `#81D4FA`  
-  - Else → grey (`#cccccc`).
+This document is a **working knowledge base** for developing CGA rules in CityEngine for the City of Adelaide Digital Twin.  
+It summarises all **mistakes, fixes, corrections, and lessons learned** across previous iterations so that future work can build from a clean foundation.
 
 ---
 
-## 🚀 Usage
+## 🎯 Current Focus
 
-1. Place the `.cga` files in your CityEngine project’s `/rules` folder.
-2. Assign `01_Parcel_Rules.cga` as the rule file in the Inspector.
-3. Ensure your cadastre feature class has the required attribute fields exactly matching:
-   - `CCSZ_name`
-   - `CCZ_value`
-   - `NACZ_value`
-   - `IZ_value`
-   - `MBHM_value`
-   - `MBHL_value`
-4. Apply the rule to parcel geometries to generate extrusions.
+We are developing a **single rule file**:  
+`01_Parcel_Rules.cga`  
+
+This rule handles **height extrusions** and **colouring by subzone** for parcels in the cadastre. It connects directly to attribute fields from the Planning and Design Code overlays.
 
 ---
 
-## 📝 Best Practices and Lessons Learned
+## 📂 Current Script: 01_Parcel_Rules.cga
 
-- **Exact attribute matching**: CGA `attr` names must exactly match GIS field names (case and underscores).
-- **Dummy values**: Handle placeholders (`9999`) using a parameterised cap (`DummyHeightCap`).
-- **Park Lands handling**: All parcels with `CCZ_value == "APL"` are extruded to **1m**, regardless of overlay values.
-- **Colour simplicity**: Colours are hard-coded by subzone. All non-subzoned parcels default to grey.
-- **Functions**: Avoid defining custom functions like `getZoneColor()`; instead inline logic in `case` statements.
-- **Syntax safety**:
-  - Every operation on its own line (e.g. `extrude(10)` not chained).
-  - No stray characters after rule definitions.
-  - Use ASCII identifiers only (avoid special characters like `ç`).
-- **Modularisation** (if extended):
-  - Keep attribute handling separate (`10_parcel_attribs.cga`).
-  - Envelope generation (`20_envelope.cga`).
-  - Zone/subzone-based logic (`30_landuse.cga`).
-  - Heritage overrides (`40_heritage.cga`).
-  - Main entry point (`99_main.cga`).
+Key behaviour:
+
+- **Height resolution**  
+  - If `CCZ_value == "APL"` (Adelaide Park Lands) → extrude **1m**.  
+  - Else if `MBHM_value == 9999` → extrude **DummyHeightCap** (Inspector parameter, default 150m).  
+  - Else if `MBHM_value > 0` → extrude that value (metres).  
+  - Else if `MBHL_value > 0` → extrude `MBHL_value * LevelHeight`.  
+  - Else → `DefaultHeight` (Inspector parameter, default 10m).
+
+- **Colour resolution**  
+  - If `CCSZ_name` matches a recognised **Capital City Subzone**, apply a **hard-coded colour**.  
+  - Else → grey (`#cccccc`).  
+  - Zones are **not** used for colouring (simplified approach).
 
 ---
 
-## 🔮 Next Steps
+## 🛑 Common Mistakes Made
 
-- Extend colour mapping to include **all zones and overlays** from the Planning & Design Code.
-- Add optional Inspector toggles for **neutral greyscale view** vs **subzone colouring**.
-- Integrate with `40_heritage.cga` to apply heritage overrides (State, Local, Adjacent).
-- Expand modular rules into the recommended package (`00_config.cga`, `10_parcel_attribs.cga`, etc.) for reusability and clarity.
+These are the pitfalls we’ve encountered and corrected:
+
+1. **Attribute mismatches**  
+   - CityEngine only auto-maps `attr` if the names **exactly match** GIS field names (case, underscores).  
+   - Fixed by aligning to lowercase/underscore field names (e.g. `MBHM_value`, `CCZ_value`, `CCSZ_name`).
+
+2. **Functions in CGA**  
+   - Tried defining helper functions (`getZoneColor()`, `getSubzoneColor()`) → ❌ invalid.  
+   - CGA doesn’t support custom functions.  
+   - ✅ Fixed by using inline `case` statements directly inside rule attributes.
+
+3. **Mid-file `attr` declarations**  
+   - Adding `attr` after rules → ❌ caused `Unexpected token: attr`.  
+   - ✅ All `attr` declarations must be at the very top of the file.
+
+4. **Version mismatches**  
+   - Used `version "2022.1"` → ⚠ warnings in CityEngine 2025.  
+   - ✅ Now always set `version "2025.0"`.
+
+5. **Over-complicated colour toggles**  
+   - Tried zone/subzone toggles and auto-modes. Too complex and error-prone.  
+   - ✅ Simplified: colour **only by subzone**, else grey.
+
+6. **Park Lands handling**  
+   - Originally left uncontrolled → extruded absurd heights.  
+   - ✅ Rule hard-coded: `CCZ_value == "APL"` → 1m.
+
+7. **Dummy height values**  
+   - Parcels with `MBHM_value == 9999` stretched infinitely.  
+   - ✅ Added Inspector parameter `DummyHeightCap` (default 150m).
 
 ---
 
-## 📄 Example Rule Flow
+## ✅ Current Best Practices
+
+- **Use inline `case` statements** for height and colour.  
+- **Keep rules simple** — avoid toggles unless strictly necessary.  
+- **Map only by subzone names** (zone colours removed for clarity).  
+- **Default everything to grey** unless a subzone explicitly matches.  
+- **Always declare all `attr` fields first** and align exactly with GIS schema.  
+- **Cap dummy heights** with a parameter.  
+- **Special case Park Lands** to 1m extrusion.  
+- **Use `version "2025.0"`** to match current CityEngine.  
+
+---
+
+## 📊 Current Rule Flow
 
 ```text
 01_Parcel_Rules.cga
  └── Lot (@StartRule)
        │
        ▼
-       colour(getColor)
+       colour(getColor)   ← by CCSZ_name, else grey
        extrude(getExtrusion)
