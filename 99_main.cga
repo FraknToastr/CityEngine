@@ -1,9 +1,0 @@
-version "2025.0"
-
-import att : "10_parcel_attribs.cga"
-import land : "30_landuse.cga"
-import her : "40_heritage.cga"
-
-@StartRule
-Lot -->
-    her.HeritageWrap(att.getMaxHeight(att.FLOOR_HEIGHT_RES))
