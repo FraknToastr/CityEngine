@@ -1,91 +1,141 @@
-# Adelaide Digital Twin – CGA Rule Development Notes
+# CGA Rules — Do’s and Don’ts (2025.0)
 
-This document is a **working knowledge base** for developing CGA rules in CityEngine for the City of Adelaide Digital Twin.  
-It summarises all **mistakes, fixes, corrections, and lessons learned** across previous iterations so that future work can build from a clean foundation.
-
----
-
-## 🎯 Current Focus
-
-We are developing a **single rule file**:  
-`01_Parcel_Rules.cga`  
-
-This rule handles **height extrusions** and **colouring by subzone** for parcels in the cadastre. It connects directly to attribute fields from the Planning and Design Code overlays.
+This guide is a quick-reference for writing **clean, compatible, and bug-free CGA rules** in CityEngine **2025.0**. It captures lessons learned from common errors and best practices.
 
 ---
 
-## 📂 Current Script: 01_Parcel_Rules.cga
+## ✅ Do’s
 
-Key behaviour:
+- **Always declare the version at the top**
+  ```cga
+  version "2025.0"
+  ```
+  Ensures compatibility with the current syntax.
 
-- **Height resolution**  
-  - If `CCZ_value == "APL"` (Adelaide Park Lands) → extrude **1m**.  
-  - Else if `MBHM_value == 9999` → extrude **DummyHeightCap** (Inspector parameter, default 150m).  
-  - Else if `MBHM_value > 0` → extrude that value (metres).  
-  - Else if `MBHL_value > 0` → extrude `MBHL_value * LevelHeight`.  
-  - Else → `DefaultHeight` (Inspector parameter, default 10m).
+- **Use modern attribute annotations**
+  ```cga
+  @Range(min=5, max=200, restricted=false)
+  attr BuildingHeight = 50
+  ```
+  🔹 Don’t use deprecated forms like `@Range(5,200)`.
 
-- **Colour resolution**  
-  - If `CCSZ_name` matches a recognised **Capital City Subzone**, apply a **hard-coded colour**.  
-  - Else → grey (`#cccccc`).  
-  - Zones are **not** used for colouring (simplified approach).
+- **Space-separate arguments** in functions like `setback()`  
+  ```cga
+  setback(2 2 0 0) Building
+  ```
+  (No commas allowed!)
 
----
+- **Use `@StartRule` once per file**  
+  ```cga
+  @StartRule
+  Lot -->
+      Building
+  ```
 
-## 🛑 Common Mistakes Made
+- **Organize with groups** (but only as comments/labels in newer versions)  
+  ```cga
+  # --- Podium Rules ---
+  ```
 
-These are the pitfalls we’ve encountered and corrected:
+- **Case conditions** with explicit comparisons:  
+  ```cga
+  case FrontEdge == 0 : setback(2 2 0 0) Building
+  else : setback(0 0 0 0) Building
+  ```
 
-1. **Attribute mismatches**  
-   - CityEngine only auto-maps `attr` if the names **exactly match** GIS field names (case, underscores).  
-   - Fixed by aligning to lowercase/underscore field names (e.g. `MBHM_value`, `CCZ_value`, `CCSZ_name`).
+- **Check geometry orientation** using `scope` or `geometry` queries when needed, rather than assuming edges.
 
-2. **Functions in CGA**  
-   - Tried defining helper functions (`getZoneColor()`, `getSubzoneColor()`) → ❌ invalid.  
-   - CGA doesn’t support custom functions.  
-   - ✅ Fixed by using inline `case` statements directly inside rule attributes.
-
-3. **Mid-file `attr` declarations**  
-   - Adding `attr` after rules → ❌ caused `Unexpected token: attr`.  
-   - ✅ All `attr` declarations must be at the very top of the file.
-
-4. **Version mismatches**  
-   - Used `version "2022.1"` → ⚠ warnings in CityEngine 2025.  
-   - ✅ Now always set `version "2025.0"`.
-
-5. **Over-complicated colour toggles**  
-   - Tried zone/subzone toggles and auto-modes. Too complex and error-prone.  
-   - ✅ Simplified: colour **only by subzone**, else grey.
-
-6. **Park Lands handling**  
-   - Originally left uncontrolled → extruded absurd heights.  
-   - ✅ Rule hard-coded: `CCZ_value == "APL"` → 1m.
-
-7. **Dummy height values**  
-   - Parcels with `MBHM_value == 9999` stretched infinitely.  
-   - ✅ Added Inspector parameter `DummyHeightCap` (default 150m).
+- **Keep modular**  
+  - Separate podium, tower, roof into dedicated rules.  
+  - Import helper CGA files carefully to avoid **import cycles**.
 
 ---
 
-## ✅ Current Best Practices
+## ❌ Don’ts
 
-- **Use inline `case` statements** for height and colour.  
-- **Keep rules simple** — avoid toggles unless strictly necessary.  
-- **Map only by subzone names** (zone colours removed for clarity).  
-- **Default everything to grey** unless a subzone explicitly matches.  
-- **Always declare all `attr` fields first** and align exactly with GIS schema.  
-- **Cap dummy heights** with a parameter.  
-- **Special case Park Lands** to 1m extrusion.  
-- **Use `version "2025.0"`** to match current CityEngine.  
+- **Don’t use commas in numeric argument lists**
+  ```cga
+  setback(2, 2, 0, 0)   # ❌ Wrong
+  setback(2 2 0 0)      # ✅ Correct
+  ```
+
+- **Don’t duplicate rule names**  
+  Each rule name must be unique per file:
+  ```cga
+  # ❌ Duplicate
+  CCSZ_color -->
+  CCSZ_color -->
+  ```
+
+- **Don’t use HTML/JavaScript comment syntax**
+  ```cga
+  <!-- comment -->   # ❌ Wrong
+  # comment          # ✅ Correct
+  ```
+
+- **Don’t assume functions exist in all versions**
+  - `color(float,float,float)` ✅  
+  - `color(str)` ❌ (not valid)  
+  - Check the [CGA reference](https://doc.arcgis.com) for valid signatures.
+
+- **Don’t import the same file into itself**  
+  ```cga
+  import "Parcel_Rules_01.cga"   # inside Parcel_Rules_01.cga ❌
+  ```
+
+- **Don’t leave rules unterminated**  
+  Always complete rules with either:
+  - another rule call,  
+  - a shape operation (e.g. `extrude`, `offset`), or  
+  - a geometry creation (e.g. `color`, `setupProjection`).
 
 ---
 
-## 📊 Current Rule Flow
+## ⚠️ Common Pitfalls & Fixes
 
-```text
-01_Parcel_Rules.cga
- └── Lot (@StartRule)
-       │
-       ▼
-       colour(getColor)   ← by CCSZ_name, else grey
-       extrude(getExtrusion)
+| Error | Meaning | Fix |
+|-------|---------|-----|
+| `Unexpected token: ,` | Used commas in `setback()` or `extrude()` args | Replace commas with spaces |
+| `Unexpected token: {` | Misplaced braces (CGA is not C/JS) | Remove braces, use `case` or nested rules |
+| `Unexpected token: else` | Improper `else` without preceding `case` | Ensure `case ... else ...` pattern |
+| `No such function: color(str)` | Wrong function signature | Use `color("#rrggbb")` or `color(r,g,b)` |
+| `An import cycle was detected` | A file imported itself or circularly | Break imports into utility files |
+| `Unknown rule: prt::generate failed` | No `@StartRule` or rule entry not found | Define `@StartRule` at top |
+
+---
+
+## 🧩 Recommended Workflow
+
+1. **Start minimal**: write a small rule that only extrudes.  
+2. **Add attributes**: height, setbacks, toggles.  
+3. **Layer complexity**: podiums, towers, roofs.  
+4. **Test imports carefully**: split zones, colors, and geometry into helper files.  
+5. **Validate often**: errors cascade quickly — fix syntax immediately.  
+
+---
+
+## 📌 Example — Minimal Interactive Rule
+
+```cga
+version "2025.0"
+
+@Range(min=5, max=200, restricted=false)
+attr BuildingHeight = 50
+
+@Range(min=0, max=10, restricted=false)
+attr SetbackFront = 2
+
+@StartRule
+Lot -->
+    setback(SetbackFront 0 0 0) Building
+
+Building -->
+    extrude(BuildingHeight)
+    color("#88ccee")
+```
+
+---
+
+🔗 **Reference**:  
+- [Esri CGA Reference 2025.0](https://doc.arcgis.com/en/cityengine/latest/cga/cga-reference.htm)  
+- [CGA Language Guide](https://doc.arcgis.com/en/cityengine/latest/cga/cga-language.htm)  
