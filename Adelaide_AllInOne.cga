@@ -8,31 +8,56 @@ attr MBHL_value = 0
 attr StoreyHeight = 3.3
 attr totalHeight = 0.0
 
+# --- Color Attributes (Legend-style) ---
+attr ParkLandsColor             = "#228B22"
+attr BusinessNeighbourhoodColor = "#d86f9f"
+attr CapitalCityColor           = "#a394d4"
+attr CityLivingColor            = "#b70c20"
+attr CityMainStreetColor        = "#5ab857"
+attr CityRiverbankColor         = "#1cf885"
+attr CommunityFacilitiesColor   = "#546a28"
+attr AdelaideAquaticCentreColor = "#cebd83"
+attr CityFrameColor             = "#aa48bb"
+attr CityHighStreetColor        = "#3a1aa4"
+attr CulturalInstitutionsColor  = "#f39961"
+attr EastTerraceColor           = "#9db125"
+attr EntertainmentColor         = "#336fdc"
+attr GougerGroteStreetColor     = "#616c82"
+attr HuttStreetColor            = "#cc9b4c"
+attr MelbourneStreetEastColor   = "#5a4689"
+attr MelbourneStreetWestColor   = "#ed11f2"
+attr NorthAdelaideVillageColor  = "#6ac364"
+attr OConnellStreetColor        = "#a83370"
+attr RundleMallColor            = "#73e47e"
+attr RundleStreetColor          = "#0b8bc9"
+attr WestEndColor               = "#8572f1"
+attr DefaultColor               = "#cccccc"
+
 # --- Zone Colors ---
 zoneColor(zone, subzone) =
-    case zone == "Adelaide Park Lands" : "#54137d"
-    case zone == "Business Neighbourhood" : "#d86f9f"
-    case zone == "Capital City" : "#a394d4"
-    case zone == "City Living" : "#b70c20"
-    case zone == "City Main Street" : "#5ab857"
-    case zone == "City Riverbank" : "#1cf885"
-    case zone == "Community Facilities" : "#546a28"
-    case subzone == "Adelaide Aquatic Centre" : "#cebd83"
-    case subzone == "City Frame" : "#aa48bb"
-    case subzone == "City High Street" : "#3a1aa4"
-    case subzone == "Cultural Institutions" : "#f39961"
-    case subzone == "East Terrace" : "#9db125"
-    case subzone == "Entertainment" : "#336fdc"
-    case subzone == "Gouger and Grote Street" : "#616c82"
-    case subzone == "Hutt Street" : "#cc9b4c"
-    case subzone == "Melbourne Street East" : "#5a4689"
-    case subzone == "Melbourne Street West" : "#ed11f2"
-    case subzone == "North Adelaide Village" : "#6ac364"
-    case subzone == "O'Connell Street" : "#a83370"
-    case subzone == "Rundle Mall" : "#73e47e"
-    case subzone == "Rundle Street" : "#0b8bc9"
-    case subzone == "West End" : "#8572f1"
-    else : "#cccccc"
+    case zone == "Adelaide Park Lands" : ParkLandsColor
+    case zone == "Business Neighbourhood" : BusinessNeighbourhoodColor
+    case zone == "Capital City" : CapitalCityColor
+    case zone == "City Living" : CityLivingColor
+    case zone == "City Main Street" : CityMainStreetColor
+    case zone == "City Riverbank" : CityRiverbankColor
+    case zone == "Community Facilities" : CommunityFacilitiesColor
+    case subzone == "Adelaide Aquatic Centre" : AdelaideAquaticCentreColor
+    case subzone == "City Frame" : CityFrameColor
+    case subzone == "City High Street" : CityHighStreetColor
+    case subzone == "Cultural Institutions" : CulturalInstitutionsColor
+    case subzone == "East Terrace" : EastTerraceColor
+    case subzone == "Entertainment" : EntertainmentColor
+    case subzone == "Gouger and Grote Street" : GougerGroteStreetColor
+    case subzone == "Hutt Street" : HuttStreetColor
+    case subzone == "Melbourne Street East" : MelbourneStreetEastColor
+    case subzone == "Melbourne Street West" : MelbourneStreetWestColor
+    case subzone == "North Adelaide Village" : NorthAdelaideVillageColor
+    case subzone == "O'Connell Street" : OConnellStreetColor
+    case subzone == "Rundle Mall" : RundleMallColor
+    case subzone == "Rundle Street" : RundleStreetColor
+    case subzone == "West End" : WestEndColor
+    else : DefaultColor
 
 # --- Start Rule ---
 @StartRule
@@ -41,16 +66,23 @@ Lot -->
 
 # --- Height Resolution ---
 ResolveHeight -->
-    case MBHM_value >= 9998.5 : set(totalHeight, 120.0) BuildingHeight
+    case CCZ_name == "Adelaide Park Lands" : set(totalHeight, 1.0) ParkLandsRule
     else :
-        case MBHM_value > 0.001 : set(totalHeight, MBHM_value) BuildingHeight
+        case MBHM_value >= 9998.5 : set(totalHeight, 120.0) BuildingHeight
         else :
-            case MBHL_value > 0 : set(totalHeight, MBHL_value * StoreyHeight) BuildingHeight
-            else : set(totalHeight, defaultZoneHeight(CCZ_name, CCSZ_name)) BuildingHeight
+            case MBHM_value > 0.001 : set(totalHeight, MBHM_value) BuildingHeight
+            else :
+                case MBHL_value > 0 : set(totalHeight, MBHL_value * StoreyHeight) BuildingHeight
+                else : set(totalHeight, defaultZoneHeight(CCZ_name, CCSZ_name)) BuildingHeight
 
 defaultZoneHeight(zone, subzone) =
     case zone == "Capital City" : 45.0
     else : 21.0
+
+# --- Park Lands Special Rule ---
+ParkLandsRule -->
+    extrude(totalHeight)
+    color(zoneColor(CCZ_name, CCSZ_name))
 
 # --- Building Dispatcher ---
 BuildingHeight -->
