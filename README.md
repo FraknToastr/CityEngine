@@ -1,4 +1,3 @@
-
 # Adelaide Digital Twin – CityEngine CGA Rules
 
 This repository contains a complete set of **CGA rule files** for building a 3D Digital Twin of the City of Adelaide in Esri CityEngine. These rules are aligned with the **South Australian Planning and Design Code (PDI Act)** and are designed to map parcels, zones, and subzones into extruded massings that reflect planning constraints.
@@ -17,21 +16,21 @@ This repository contains a complete set of **CGA rule files** for building a 3D 
   - Else → fallback to `DefaultHeight` (default 10m).
   - Special case: if `CCZ_value == "APL"` (Adelaide Park Lands), extrusion is fixed to **1m**.
 - Applies **colour mapping** by `CCSZ_name` (Capital City Subzones):
-  - *Adelaide Aquatic Centre* → `#4DB6AC`
-  - *City Frame* → `#80CBC4`
-  - *Cultural Institutions* → `#9575CD`
-  - *City High Street* → `#AED581`
-  - *Entertainment* → `#F06292`
-  - *East Terrace* → `#64B5F6`
-  - *Gouger and Grote Street* → `#BA68C8`
-  - *Health* → `#81C784`
-  - *Hindley Street* → `#FF8A65`
-  - *Innovation* → `#4FC3F7`
-  - *Medium-High Intensity* → `#FFF176`
-  - *Melbourne Street West* → `#A1887F`
-  - *North Adelaide Low Intensity* → `#90A4AE`
-  - *Rundle Mall* → `#F48FB1`
-  - *Rundle Street* → `#81D4FA`
+  - *Adelaide Aquatic Centre* → `#4DB6AC`  
+  - *City Frame* → `#80CBC4`  
+  - *Cultural Institutions* → `#9575CD`  
+  - *City High Street* → `#AED581`  
+  - *Entertainment* → `#F06292`  
+  - *East Terrace* → `#64B5F6`  
+  - *Gouger and Grote Street* → `#BA68C8`  
+  - *Health* → `#81C784`  
+  - *Hindley Street* → `#FF8A65`  
+  - *Innovation* → `#4FC3F7`  
+  - *Medium-High Intensity* → `#FFF176`  
+  - *Melbourne Street West* → `#A1887F`  
+  - *North Adelaide Low Intensity* → `#90A4AE`  
+  - *Rundle Mall* → `#F48FB1`  
+  - *Rundle Street* → `#81D4FA`  
   - Else → grey (`#cccccc`).
 
 ---
@@ -89,17 +88,3 @@ This repository contains a complete set of **CGA rule files** for building a 3D 
        ▼
        colour(getColor)
        extrude(getExtrusion)
-```
-
----
-
-## 📊 Rule Package Diagram
-
-```mermaid
-flowchart TD
-    A[Parcel Attributes] --> B[Height Logic]
-    B --> C[Colour (Subzone)]
-    B --> D[Colour (Grey Default)]
-    C --> E[Extrusion]
-    D --> E[Extrusion]
-```
