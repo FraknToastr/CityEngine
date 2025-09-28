@@ -1,0 +1,71 @@
+// 01_Parcel_Rules.cga
+// Adelaide Digital Twin – Height + Subzone Colours
+// Version: 2025.0
+
+version "2025.0"
+
+// -----------------------------------------------------------------------------
+// Attributes (must match GIS field names)
+// -----------------------------------------------------------------------------
+attr CCSZ_id    = ""     
+attr CCSZ_name  = ""     
+attr CCZ_value  = ""     
+attr IZ_value   = ""     
+attr MBHL_value = 0      
+attr MBHM_value = 0      
+attr NACZ_value = ""     
+
+// -----------------------------------------------------------------------------
+// Parameters
+// -----------------------------------------------------------------------------
+@Group("Heights")
+@Range(min=1, max=200, restricted=false)
+attr DefaultHeight = 10     
+
+@Range(min=2, max=6, restricted=false)
+attr LevelHeight   = 3.5    
+
+@Range(min=10, max=500, restricted=false)
+attr DummyHeightCap = 150   
+
+// -----------------------------------------------------------------------------
+// Height Resolver
+// -----------------------------------------------------------------------------
+getHeight =
+    case MBHM_value == 9999 : DummyHeightCap
+    case MBHM_value > 0     : MBHM_value
+    case MBHL_value > 0     : MBHL_value * LevelHeight
+    else                     : DefaultHeight
+
+getExtrusion =
+    case CCZ_value == "APL" : 1     // Park Lands rule
+    else                   : getHeight
+
+// -----------------------------------------------------------------------------
+// Subzone Colour Mapping (from Excel list)
+// -----------------------------------------------------------------------------
+getColor =
+    case CCSZ_name == "Adelaide Aquatic Centre"       : "#4DB6AC"
+    case CCSZ_name == "City Frame"                    : "#80CBC4"
+    case CCSZ_name == "Cultural Institutions"         : "#9575CD"
+    case CCSZ_name == "City High Street"              : "#AED581"
+    case CCSZ_name == "Entertainment"                 : "#F06292"
+    case CCSZ_name == "East Terrace"                  : "#64B5F6"
+    case CCSZ_name == "Gouger and Grote Street"       : "#BA68C8"
+    case CCSZ_name == "Health"                        : "#81C784"
+    case CCSZ_name == "Hindley Street"                : "#FF8A65"
+    case CCSZ_name == "Innovation"                    : "#4FC3F7"
+    case CCSZ_name == "Medium-High Intensity"         : "#FFF176"
+    case CCSZ_name == "Melbourne Street West"         : "#A1887F"
+    case CCSZ_name == "North Adelaide Low Intensity"  : "#90A4AE"
+    case CCSZ_name == "Rundle Mall"                   : "#F48FB1"
+    case CCSZ_name == "Rundle Street"                 : "#81D4FA"
+    else                                              : "#cccccc"
+
+// -----------------------------------------------------------------------------
+// Start Rule
+// -----------------------------------------------------------------------------
+@StartRule
+Lot -->
+    color(getColor)
+    extrude(getExtrusion)
