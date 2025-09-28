@@ -1,0 +1,71 @@
+version "2025.0"
+
+# --- Attributes ---
+attr CCZ_name   = ""
+attr CCSZ_name  = ""
+attr MBHM_value = 0.0
+attr MBHL_value = 0
+attr StoreyHeight = 3.3
+attr totalHeight = 0.0
+
+# --- Zone Colors ---
+zoneColor(zone, subzone) =
+    case zone == "Adelaide Park Lands" : "#54137d"
+    case zone == "Business Neighbourhood" : "#d86f9f"
+    case zone == "Capital City" : "#a394d4"
+    case zone == "City Living" : "#b70c20"
+    case zone == "City Main Street" : "#5ab857"
+    case zone == "City Riverbank" : "#1cf885"
+    case zone == "Community Facilities" : "#546a28"
+    case subzone == "Adelaide Aquatic Centre" : "#cebd83"
+    case subzone == "City Frame" : "#aa48bb"
+    case subzone == "City High Street" : "#3a1aa4"
+    case subzone == "Cultural Institutions" : "#f39961"
+    case subzone == "East Terrace" : "#9db125"
+    case subzone == "Entertainment" : "#336fdc"
+    case subzone == "Gouger and Grote Street" : "#616c82"
+    case subzone == "Hutt Street" : "#cc9b4c"
+    case subzone == "Melbourne Street East" : "#5a4689"
+    case subzone == "Melbourne Street West" : "#ed11f2"
+    case subzone == "North Adelaide Village" : "#6ac364"
+    case subzone == "O'Connell Street" : "#a83370"
+    case subzone == "Rundle Mall" : "#73e47e"
+    case subzone == "Rundle Street" : "#0b8bc9"
+    case subzone == "West End" : "#8572f1"
+    else : "#cccccc"
+
+# --- Start Rule ---
+@StartRule
+Lot -->
+    ResolveHeight
+
+# --- Height Resolution ---
+ResolveHeight -->
+    case MBHM_value >= 9998.5 : set(totalHeight, 120.0) BuildingHeight
+    else :
+        case MBHM_value > 0.001 : set(totalHeight, MBHM_value) BuildingHeight
+        else :
+            case MBHL_value > 0 : set(totalHeight, MBHL_value * StoreyHeight) BuildingHeight
+            else : set(totalHeight, defaultZoneHeight(CCZ_name, CCSZ_name)) BuildingHeight
+
+defaultZoneHeight(zone, subzone) =
+    case zone == "Capital City" : 45.0
+    else : 21.0
+
+# --- Building Dispatcher ---
+BuildingHeight -->
+    case CCZ_name == "Capital City" : PodiumTowerRule
+    else : SimpleBuilding
+
+SimpleBuilding -->
+    extrude(totalHeight)
+    color(zoneColor(CCZ_name, CCSZ_name))
+
+PodiumTowerRule -->
+    extrude(12.0)
+    color("#aaaaaa")
+    comp(f) { top : TowerRule }
+
+TowerRule -->
+    extrude(totalHeight - 12.0)
+    color("#4444aa")
