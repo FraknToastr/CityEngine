@@ -1,0 +1,28 @@
+// --------------------------------------------------
+// TreeRule_Final_FullPath.cga
+// Uses full path FinalAsset baked into CSV
+// --------------------------------------------------
+
+attr FinalAsset = "assets/Trees/LowPoly/Unknown.glb"
+attr height_m   = 0
+attr canopy_m   = 0
+
+Tree -->
+    case FinalAsset != "" :
+        InsertTree(FinalAsset)
+    else :
+        NIL
+
+InsertTree(path) -->
+    case (canopy_m > 0 && height_m > 0) :
+        WithDimensions(path)
+    else :
+        WithRandom(path)
+
+WithDimensions(path) -->
+    i(path)
+    s(canopy_m, height_m, canopy_m)
+
+WithRandom(path) -->
+    i(path)
+    s(rand(2,10), rand(5,20), rand(2,10))
