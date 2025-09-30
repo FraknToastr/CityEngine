@@ -1,63 +1,113 @@
-# 🏗️ CE2025.0 CGA Best Practices – Project Reference
+# CityEngine CGA Best Practices – Categorised by Version
 
-This document summarises **best practices** for working with **CityEngine 2025.0 CGA rule files**, based on analysis of 208 example and tutorial files from Esri’s official distribution.
-
----
-
-## 1. General Structure
-- Always include a **Start Rule** – CE2025.0 enforces stricter parsing and rules will fail without it.
-- Use **attributes** (`attr`) to parameterise values (heights, materials, booleans) instead of hardcoding.
-- Group related rules logically with clear comments.
-
-## 2. Imports & Utilities
-- Use `import` for reusability, but CE2025.0 requires correct paths and naming.
-- Keep **utility CGA files** (arrays, colors, CIM utils, etc.) in a shared folder and import them consistently.
-- Avoid circular imports – CE2025.0 parser rejects them.
-
-## 3. Geometry & Perimeters
-- Use `setback`, `extrude`, and perimeter operators consistently for predictable envelopes.
-- Leverage **orientation rules** (`edge`, `scope`, `alignScopeToAxes`) to control building massing.
-- Validate geometry with reporting (`report`, `print`) to avoid unexpected results.
-
-## 4. Streets & Lanes
-- Modularise lane definitions (`Car_Lane.cga`, `Bike_Lane.cga`, etc.) and import into street templates.
-- Keep **materials and lane markings** in separate files for easier swapping.
-- Use **queries** (e.g., `Lane_Queries.cga`) for debugging attributes along networks.
-
-## 5. Facades & Roofs
-- Separate facade logic (`Facade_Textures.cga`, `gen_AdvancedFacade...`) from mass models.
-- Always define **fallback materials** to avoid errors if textures are missing.
-- Roofs should be modular (`flatroof.cga`, `brickroof.cga`) and parameter-driven.
-
-## 6. Landscaping & Furniture
-- Use distributors (`Plant_Distributor.cga`, `Row_Distributor.cga`) for controlled randomness.
-- Keep **street furniture** (bollards, lamps, racks) as reusable CGA modules.
-- Maintain scale consistency to avoid oversized elements.
-
-## 7. Reporting & QA
-- Use `report` to capture key metrics (GFA, site coverage, FSR, open space).
-- Create dedicated reporting scripts (`reporting_01-04.cga`) for compliance checking.
-- Use reports during iteration – they integrate well into dashboards.
-
-## 8. Advanced Patterns
-- Use **dynamic imports** (`dynamic_imports_01-05.cga`) cautiously; ensure all targets exist.
-- Break large scripts into **perimeter / massing / facade / roof / landscape** components.
-- When experimenting, use simplified placeholders (`simpleBuilding_01.cga`) before applying detailed rules.
-
-## 9. Error Handling
-- Always test new rules with **simple extrusions** before layering complexity.
-- Include fallback cases (`Error.cga`) to catch unsupported geometry.
-- Comment generously when using advanced CGA functions.
+This document collects lessons, rules, and debugging notes from working with **CGA rule files** in different versions of **CityEngine**.  
+It is structured by **version number** so you can quickly check which syntax and behaviours apply.
 
 ---
 
-### ✅ Key Takeaways
-- **Always define a Start Rule.**
-- **Parameterise everything with attributes.**
-- **Keep modules small and reusable.**
-- **Use reports for QA and compliance.**
-- **Organise scripts into categories:** Perimeter → Massing → Facade → Roof → Furniture → Landscaping.
+## ✅ General CGA Best Practices (All Versions)
+
+- Always define a **`StartRule`** — required entry point.
+- Keep **braces `{ }`** clean and consistent. Avoid inline one-liners that combine multiple braces/blocks.
+- Provide **fallback cases** for missing or invalid attributes.
+- Use `report("AttributeName", value)` liberally for debugging.
+- Save `.cga` files directly inside CE to avoid encoding/BOM issues.
 
 ---
 
-This README is designed as a **living reference** for future City of Adelaide CGA rule development and can be extended with project-specific patterns (e.g., Plan & Design Code envelopes, heritage overlays, podium/tower setbacks).
+## 🏗️ CityEngine 2024.x
+
+- **`setback` syntax** is more permissive:
+  - Both `{ remainder : Rule }` and simple `setback(distance) Rule` forms generally work.
+  - Safer for passing parameters to rules.
+- Debugging is simpler: “Unexpected token” errors usually indicate a real brace mismatch.
+- Podium + tower rules can be written with `setback` directly.
+
+**Example (CE2024 podium/tower):**
+```cga
+TopShape(h) -->
+    setback(5) { remainder : Tower(h) }
+```
+
+---
+
+## 🏙️ CityEngine 2025.0
+
+- **`setback` syntax is stricter**:
+  - Inline braces with parameters often cause `Unexpected token }` or `Unexpected token Rule`.
+  - Recommended to **replace `setback` with `offset(-distance)`** when creating towers above podiums.
+- **`comp()` must always use braces**:
+  - Valid: `comp(top) { TopShape }`
+  - Invalid: `comp(top) : TopShape`
+- End-of-file errors (`Unexpected end of file`) are often due to:
+  - Trailing spaces without newline
+  - Unclosed `case` without `else`
+- **Attribute Binding**: CE2025 blocks rule assignment if attributes referenced in the `.cga` don’t exist in the layer schema.
+
+**Example (CE2025 safe podium/tower):**
+```cga
+PodiumTower -->
+    extrude(15)
+    color("#ff0000")
+    comp(top) { TowerTop }
+
+TowerTop -->
+    offset(-5)
+    extrude(45)
+    color("#0000ff")
+```
+
+---
+
+## 🌳 Special Parcels: Adelaide Park Lands
+
+- Parcels with **0 metres and 0 levels** → always extrude **1m flat** and colour **forest green (#228B22)**.
+- Excluded from podium/tower rules unless explicitly required by planning code.
+
+---
+
+## 📏 Height Envelope Rules (Test 7 series)
+
+### Attributes
+- `MaxMetres_value_dbl` → preferred when present.
+- `MaxLevels_value_dbl` → used if metres missing/disabled.
+- `UseMetres` toggle:
+  - `1` → force metres
+  - `0` → force levels
+  - `-1` → auto (prefer metres, else levels)
+
+### Caps
+- **9999 metres** → capped to **120m** (colour = **magenta #ff00ff**).
+
+### Colour Mapping
+From **MaxHeights.xlsx**:
+
+- **Metres values:** 8.5, 11, 14, 15, 18, 22, 28, 29, 34, 36, 43, 53, 120 (cap)
+- **Levels values:** 1, 2, 3, 4, 5, 6, 14
+
+Each assigned a unique colour.
+
+### Reporting
+- `report("HeightSource", "...")` outputs classification in Inspector:
+  - `Metres`, `Levels`, `Parklands (1m)`, or `Fallback`.
+
+---
+
+## 📌 Reference Example Rules (Esri Samples, CE2025)
+
+- `towers_podiums_setbacks.cga`
+- `towers_podiums_setbacks_02.cga` ← **most stable, recommended**
+- `towers_podiums_simple.cga`
+
+Use these as templates for complex podium + tower scenarios.
+
+---
+
+## ⚠️ Debugging Summary (CE2025)
+
+- **Unexpected token }** → usually inline `setback` block with parameters. Replace with `offset`.
+- **Unexpected token :** → caused by colon-form `comp`. Must use braces.
+- **Unexpected end of file** → file missing newline or `else`.
+- **Rule won’t assign** → attribute mismatch in layer schema.
+
+---
