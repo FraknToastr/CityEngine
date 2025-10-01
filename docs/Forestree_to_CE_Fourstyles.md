@@ -15,80 +15,99 @@ The process ensures that every tree record is linked to a valid `.glb` tree mode
 
 ---
 
-## 2. Create Master Crosswalk (Schematic Key)
+## 2. Create the Crosswalk with Key (AI Assisted)
 
-The crosswalk links **genus/species** names from Forestree to the available vegetation `.glb` assets in CityEngine.  
-
-### Step 1. Generate file list of ESRI.lib vegetation assets
-1. Open a Windows **CMD shell** and run:  
-
-   ```cmd
-   dir /S /B > filelist.txt
-   ```
-
-   - Run this inside:  
-     ```
-     E:\Work\City Engine\Default Workspace\ESRI.lib\assets\Webstyles\Vegetation
-     ```
-   - This creates a flat text file (`filelist.txt`) containing all `.glb` files and their paths.
-
-2. Use **Power Query** in Excel to transform this list:
-   - Split out folder and filename parts  
-   - Normalize the filename into `Genus` and `Species` columns  
-   - Create a simplified lookup table of vegetation assets
-
-This became the **starting point** for the Master Crosswalk Schematic Key.
+The **Crosswalk with Key** is the lookup table that links **genus/species** names from Forestree to the available vegetation `.glb` assets in CityEngine.  
+This step is partly manual (generating and transforming a file list) and partly automated (AI-assisted name matching).
 
 ---
 
-### Step 2. Initial Header Row (very simple)
+### Step 1. Generate raw file list from ESRI.lib
 
-```text
-common_name, genus, species
+Run this in a Windows CMD shell inside the ESRI.lib vegetation folder:
+
+```cmd
+dir /S /B > filelist.txt
 ```
 
-**Example (start of process):**
+Example `filelist.txt` output:
 
-| common_name   | genus      | species       |
-|---------------|------------|---------------|
-| River Red Gum | Eucalyptus | camaldulensis |
-| Jacaranda     | Jacaranda  | mimosifolia   |
-| London Plane  | Platanus   | x acerifolia  |
-
----
-
-### Step 3. Add Join Key
-
-- Create a new column `Key` in both datasets.  
-- In Forestree:  
-  ```
-  Key = genus + species
-  ```
-  (capitalize + trim spaces)  
-- In Crosswalk:  
-  ```
-  Key = Genus + Species
-  ```
-- This allows a **direct join** on scientific names, with fallback to genus if no exact species match.
-
----
-
-### Step 4. Final Header Row (enriched)
-
-```text
-common_name, genus, species, Genus, Species, Model_type, MatchType, asset_file, Key
+```
+E:\Work\City Engine\Default Workspace\ESRI.lib\assets\Webstyles\Vegetation\LowPoly\EucalyptusCamaldulensis.glb
+E:\Work\City Engine\Default Workspace\ESRI.lib\assets\Webstyles\Vegetation\Realistic\JacarandaMimosifolia.glb
+E:\Work\City Engine\Default Workspace\ESRI.lib\assets\Webstyles\Vegetation\Fan\PlatanusGeneric.glb
 ```
 
-**Example (final version):**
+---
 
-| common_name   | genus      | species       | Genus      | Species       | Model_type | MatchType      | asset_file                                 | Key                     |
-|---------------|------------|---------------|------------|---------------|------------|----------------|--------------------------------------------|-------------------------|
-| River Red Gum | Eucalyptus | camaldulensis | Eucalyptus | Camaldulensis | Schematic  | Species match  | assets/Trees/Schematic/EucalyptusCam.glb   | EucalyptusCamaldulensis |
-| Jacaranda     | Jacaranda  | mimosifolia   | Jacaranda  | Mimosifolia   | Schematic  | Species match  | assets/Trees/Schematic/JacarandaMim.glb    | JacarandaMimosifolia    |
-| London Plane  | Platanus   | x acerifolia  | Platanus   | X acerifolia  | Schematic  | Genus fallback | assets/Trees/Schematic/PlatanusGeneric.glb | PlatanusX acerifolia    |
-| Unknown Tree  |            |               |            |               | Schematic  | Unknown        | assets/Trees/Schematic/Unknown.glb         |                         |
+### Step 2. Transform file list with Power Query
 
-This final CSV is the **MasterCrosswalk_Schematic_Key.csv**.
+Import `filelist.txt` into Excel/Power BI with **Power Query** and transform it:
+
+- Split the path by `\` delimiter.  
+- Keep only the folder name (model type) and filename.  
+- Remove the `.glb` extension.  
+- Rename headers.
+
+The result is **CE2025_Esri.lib_assets.txt** with headers:
+
+```text
+Model_type, Filename
+```
+
+Example:
+
+| Model_type | Filename                |
+|------------|-------------------------|
+| LowPoly    | EucalyptusCamaldulensis |
+| Realistic  | JacarandaMimosifolia    |
+| Fan        | PlatanusGeneric         |
+
+---
+
+### Step 3. Prepare Forestree input
+
+From Step 1, export Forestree attributes to **Forestree.xlsx** (sheet `Forestree`).  
+
+Header row:
+
+```text
+id, asset_id, common_name, genus, species, dbh, canopy_m, height_m, lng, lat, ...
+```
+
+---
+
+### Step 4. AI-Assisted Crosswalk Creation
+
+Provide both files to the AI:  
+- **Forestree.xlsx**  
+- **CE2025_Esri.lib_assets.txt**
+
+The AI will:  
+- Normalize names (capitalize, trim).  
+- Create a **Key** in both datasets:  
+  - Forestree: `Key = genus + species`  
+  - Assets: `Key = Genus + Species`  
+- Match on **species+genus**, fall back to **genus only**, or flag as **Unknown**.  
+
+---
+
+### Step 5. Output Crosswalk with Key
+
+The AI outputs **Tree_CE2025_MasterCrosswalk_withKey.csv** with headers:
+
+```text
+common_name, genus, species, Genus, Species, MatchType, asset_file, Key
+```
+
+Example:
+
+| common_name   | genus      | species       | Genus      | Species       | MatchType      | asset_file                              | Key                     |
+|---------------|------------|---------------|------------|---------------|----------------|-----------------------------------------|-------------------------|
+| River Red Gum | Eucalyptus | camaldulensis | Eucalyptus | Camaldulensis | Species match  | assets/Trees/LowPoly/EucalyptusCam.glb  | EucalyptusCamaldulensis |
+| Jacaranda     | Jacaranda  | mimosifolia   | Jacaranda  | Mimosifolia   | Species match  | assets/Trees/Realistic/JacarandaMim.glb | JacarandaMimosifolia    |
+| London Plane  | Platanus   | x acerifolia  | Platanus   | X acerifolia  | Genus fallback | assets/Trees/Fan/PlatanusGeneric.glb    | PlatanusX acerifolia    |
+| Unknown Tree  |            |               |            |               | Unknown        | assets/Trees/LowPoly/Unknown.glb        |                         |
 
 ---
 
@@ -110,7 +129,7 @@ This final CSV is the **MasterCrosswalk_Schematic_Key.csv**.
    ```
    assets/Trees/LowPoly/
    assets/Trees/Realistic/
-   assets/Trees/Schematic/
+   assets/Trees/Crosswalk/
    assets/Trees/Fan/
    ```
 
@@ -123,18 +142,11 @@ Use the included script **ForestreeFullPath.py** (or ArcGIS toolbox **ForestreeF
 This creates:
 - `FinalAsset_LowPoly`  
 - `FinalAsset_Realistic`  
-- `FinalAsset_Schematic`  
+- `FinalAsset_Crosswalk`  
 - `FinalAsset_Fan`  
 - `FinalAsset` (chosen default style, e.g. LowPoly)  
 
-Each column contains the **full baked path**:
-
-```text
-assets/Trees/LowPoly/EucalyptusCamaldulensis.glb
-assets/Trees/Realistic/EucalyptusCamaldulensis.glb
-assets/Trees/Schematic/EucalyptusCamaldulensis.glb
-assets/Trees/Fan/EucalyptusCamaldulensis.glb
-```
+Each column contains the **full baked path**.
 
 ### Python Output Metrics
 When the script runs, it prints summary statistics:  
@@ -183,9 +195,9 @@ Attach the `TreeRule_Final_FullPath.cga` rule to the imported feature class.
 - **At the start:**  
   Header was minimal — `common_name, genus, species`.  
 
-- **At the end:**  
+- **At the end (AI output):**  
   Enriched with join keys and asset mapping —  
-  `common_name, genus, species, Genus, Species, Model_type, MatchType, asset_file, Key`.
+  `common_name, genus, species, Genus, Species, MatchType, asset_file, Key`.
 
 ---
 
