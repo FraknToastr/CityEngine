@@ -158,16 +158,14 @@ When the script runs, it prints summary statistics:
 
 ## 5. Create Forestree Feature Class (ArcGIS Pro)
 
-1. Use the **XY to Table** tool in ArcGIS Pro:
+1. Use the **XY Table to Point** tool in ArcGIS Pro:
    - Input: `Forestree_WithAssets_FullPath.csv`
    - X field: `lng`
    - Y field: `lat`
-   - Coordinate System: **GCS_WGS_1984**
+   - Coordinate System: **GDA2020 MGA Zone 54** (set in the *Environment* tab)
 
-2. Use the **Project** tool to convert into **GDA2020 MGA Zone 54**:
-   - Output CS: `GDA2020Z54`
-
-3. Save the feature class into your CityEngine workspace geodatabase.
+2. Save the feature class into your CityEngine workspace geodatabase.  
+   - Projection is already applied in this step — no need to run the Project tool separately.
 
 ---
 
