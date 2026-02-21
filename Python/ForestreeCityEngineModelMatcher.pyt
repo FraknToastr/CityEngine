@@ -154,7 +154,71 @@ def _resolve_unknown_stem(exact_key_to_stem):
     return exact_key_to_stem.get("unknown", "Unknown")
 
 
-def _run_crosswalk(in_table, filelist_path, out_csv, default_style, species_asset_style):
+def _resolve_summary_path(output_path):
+    normalized = os.path.normpath(output_path)
+    lower_normalized = normalized.lower()
+
+    for workspace_ext in (".gdb", ".sde"):
+        marker = lower_normalized.find(workspace_ext)
+        if marker >= 0:
+            workspace_path = normalized[: marker + len(workspace_ext)]
+            dataset_part = normalized[marker + len(workspace_ext) :].strip("\\/")
+            dataset_name = os.path.basename(dataset_part) if dataset_part else "output"
+            base_name = os.path.splitext(dataset_name)[0] or "output"
+            return workspace_path, base_name
+
+    if os.path.isdir(normalized):
+        return normalized, "output"
+
+    folder_path = os.path.dirname(normalized) or os.getcwd()
+    base_name = os.path.splitext(os.path.basename(normalized))[0] or "output"
+    return folder_path, base_name
+
+
+def _write_matchtype_summary(output_path, stats, row_count):
+    report_folder, report_base = _resolve_summary_path(output_path)
+    if not os.path.isdir(report_folder):
+        os.makedirs(report_folder)
+
+    report_name = "{0}_MatchTypeSummary.txt".format(report_base)
+    report_path = os.path.join(report_folder, report_name)
+
+    ordered_match_types = ["Species match", "Genus fallback", "Unknown"]
+    lines = [
+        "MatchType Summary Report",
+        "Generated: {0}".format(datetime.now().isoformat(timespec="seconds")),
+        "Output Target: {0}".format(output_path),
+        "Rows Processed: {0}".format(row_count),
+        "",
+    ]
+
+    for match_type in ordered_match_types:
+        count = int(stats.get(match_type, 0))
+        percent = (float(count) / float(row_count) * 100.0) if row_count else 0.0
+        lines.append("{0}: {1} ({2:.2f}%)".format(match_type, count, percent))
+
+    lines.append("")
+    lines.append("Total MatchType Rows: {0}".format(sum(int(value) for value in stats.values())))
+
+    try:
+        with open(report_path, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(lines) + "\n")
+        arcpy.AddMessage("MatchType summary report: {0}".format(report_path))
+    except Exception as ex:
+        fallback_folder = os.path.dirname(report_folder) or report_folder
+        fallback_path = os.path.join(fallback_folder, report_name)
+        with open(fallback_path, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(lines) + "\n")
+        arcpy.AddWarning(
+            "Could not write report in workspace. Wrote MatchType summary report to: {0}. Reason: {1}".format(
+                fallback_path, ex
+            )
+        )
+
+
+def _run_crosswalk(
+    in_table, filelist_path, out_csv, default_style, species_asset_style, family_field=None
+):
     base_to_styles, exact_key_to_stem, genus_to_candidates, style_counts = _parse_filelist(
         filelist_path
     )
@@ -165,6 +229,15 @@ def _run_crosswalk(in_table, filelist_path, out_csv, default_style, species_asse
     common_name_field = lower_lookup["common_name"]
     genus_field = lower_lookup["genus"]
     species_field = lower_lookup["species"]
+    family_field_name = None
+    if family_field:
+        family_field_name = lower_lookup.get(family_field.lower())
+        if not family_field_name:
+            arcpy.AddWarning(
+                "Configured family field was not found and will be ignored: {0}".format(
+                    family_field
+                )
+            )
 
     # Exclude unsupported field types from CSV output.
     source_fields = []
@@ -193,6 +266,8 @@ def _run_crosswalk(in_table, filelist_path, out_csv, default_style, species_asse
     arcpy.AddMessage("Start: {0}".format(datetime.now().isoformat(timespec="seconds")))
     arcpy.AddMessage("Input table: {0}".format(in_table))
     arcpy.AddMessage("File list: {0}".format(filelist_path))
+    if family_field_name:
+        arcpy.AddMessage("Family field mapping: {0}".format(family_field_name))
     arcpy.AddMessage(
         "Asset counts by style: {0}".format(
             ", ".join(
@@ -287,19 +362,20 @@ def _run_crosswalk(in_table, filelist_path, out_csv, default_style, species_asse
         arcpy.AddWarning(
             "Rows with blank genus+species were assigned to Unknown: {0}".format(skipped_empty)
         )
+    _write_matchtype_summary(out_csv, stats, row_count)
     arcpy.AddMessage("Output CSV: {0}".format(out_csv))
 
 
 class Toolbox(object):
     def __init__(self):
-        self.label = "Forestree Raw To Final"
-        self.alias = "forestreerawtofinal"
-        self.tools = [ForestreeRawToFinalTool]
+        self.label = "Forestree City Engine Model Matcher"
+        self.alias = "forestreecityenginemodelmatcher"
+        self.tools = [ForestreeCityEngineModelMatcherTool]
 
 
-class ForestreeRawToFinalTool(object):
+class ForestreeCityEngineModelMatcherTool(object):
     def __init__(self):
-        self.label = "Forestree Raw Table To Final Asset CSV"
+        self.label = "Forestree City Engine Model Matcher"
         self.description = (
             "Takes a full Forestree table and a CityEngine tree file list, then outputs "
             "the final CSV with MatchType and FinalAsset paths."
@@ -353,12 +429,34 @@ class ForestreeRawToFinalTool(object):
         p4.filter.list = STYLE_LIST
         p4.value = "Schematic"
 
-        return [p0, p1, p2, p3, p4]
+        p5 = arcpy.Parameter(
+            displayName="Family Field (Optional)",
+            name="family_field",
+            datatype="Field",
+            parameterType="Optional",
+            direction="Input",
+        )
+        p5.parameterDependencies = [p0.name]
+
+        return [p0, p1, p2, p3, p4, p5]
 
     def isLicensed(self):
         return True
 
     def updateParameters(self, parameters):
+        in_table = parameters[0].valueAsText
+        if not in_table:
+            return
+
+        try:
+            if parameters[5].altered:
+                return
+            lower_lookup = {field.name.lower(): field.name for field in arcpy.ListFields(in_table)}
+            if "family" in lower_lookup:
+                parameters[5].value = lower_lookup["family"]
+        except Exception:
+            pass
+
         return
 
     def updateMessages(self, parameters):
@@ -394,6 +492,7 @@ class ForestreeRawToFinalTool(object):
         out_csv = parameters[2].valueAsText
         default_style = parameters[3].valueAsText or "LowPoly"
         species_asset_style = parameters[4].valueAsText or "Schematic"
+        family_field = parameters[5].valueAsText
 
         try:
             _run_crosswalk(
@@ -402,6 +501,7 @@ class ForestreeRawToFinalTool(object):
                 out_csv=out_csv,
                 default_style=default_style,
                 species_asset_style=species_asset_style,
+                family_field=family_field,
             )
             arcpy.AddMessage("Completed successfully.")
         except Exception:
